@@ -55,10 +55,12 @@ mod tests {
                 previous_output: OutPoint::new(Hash256::ZERO, 0),
                 unlocking_script: vec![0u8; 10],
                 sequence: 0,
+                redeemer: None,
             }],
             outputs: vec![TxOutput {
                 value: Quantum::from_raw(10_000),
                 locking_script: vec![0u8; 10],
+                datum: aurion_core::tx::Datum::None,
             }],
             locktime: 0,
         };

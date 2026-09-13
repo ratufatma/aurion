@@ -43,4 +43,10 @@ pub enum ScriptError {
 
     #[error("unexpected end of script bytes during pushdata read")]
     UnexpectedEof,
+
+    #[error("introspection context unavailable")]
+    ContextUnavailable,
+
+    #[error("index out of bounds: {0}")]
+    IndexOutOfBounds(usize),
 }

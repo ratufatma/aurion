@@ -13,7 +13,7 @@ use aurion_consensus::genesis::create_genesis_block;
 use aurion_consensus::subsidy::INITIAL_SUBSIDY;
 use aurion_core::block::{Block, BlockHeader};
 use aurion_core::outpoint::OutPoint;
-use aurion_core::tx::{Transaction, TxInput, TxOutput};
+use aurion_core::tx::{Datum, Transaction, TxInput, TxOutput};
 use aurion_node::authority::{AuthorityEngine, AuthorityError, InvariantError};
 use aurion_node::lifecycle::NodeFault;
 use aurion_storage::StorageEngine;
@@ -78,10 +78,12 @@ fn test_end_to_end_canonical_chain_lifecycle() {
             previous_output: OutPoint::new(Hash256::ZERO, 0xFFFF_FFFF),
             unlocking_script: b"Mined by Miner A".to_vec(),
             sequence: 0xFFFF_FFFF,
+            redeemer: None,
         }],
         outputs: vec![TxOutput {
             value: Quantum::from_raw(INITIAL_SUBSIDY),
             locking_script: miner_locking_script.clone(),
+            datum: Datum::None,
         }],
         locktime: 0,
     };
@@ -123,15 +125,18 @@ fn test_end_to_end_canonical_chain_lifecycle() {
             previous_output: b1_coinbase_op,
             unlocking_script: vec![], // Diisi setelah tanda tangan
             sequence: 0,
+            redeemer: None,
         }],
         outputs: vec![
             TxOutput {
                 value: spend_val,
                 locking_script: recipient_locking_script.clone(),
+                datum: Datum::None,
             },
             TxOutput {
                 value: change_val,
                 locking_script: miner_locking_script.clone(),
+                datum: Datum::None,
             },
         ],
         locktime: 0,
@@ -152,10 +157,12 @@ fn test_end_to_end_canonical_chain_lifecycle() {
             previous_output: OutPoint::new(Hash256::ZERO, 0xFFFF_FFFF),
             unlocking_script: b"Coinbase B2".to_vec(),
             sequence: 0xFFFF_FFFF,
+            redeemer: None,
         }],
         outputs: vec![TxOutput {
             value: Quantum::from_raw(INITIAL_SUBSIDY),
             locking_script: miner_locking_script.clone(),
+            datum: Datum::None,
         }],
         locktime: 0,
     };
@@ -215,10 +222,12 @@ fn test_double_spend_rejection_protects_canonical_ledger() {
             previous_output: genesis_outpoint,
             unlocking_script: vec![],
             sequence: 0,
+            redeemer: None,
         }],
         outputs: vec![TxOutput {
             value: Quantum::from_raw(INITIAL_SUBSIDY),
             locking_script: vec![OpCode::OpTrue as u8],
+            datum: Datum::None,
         }],
         locktime: 0,
     };
@@ -230,10 +239,12 @@ fn test_double_spend_rejection_protects_canonical_ledger() {
             previous_output: genesis_outpoint,
             unlocking_script: vec![],
             sequence: 1,
+            redeemer: None,
         }],
         outputs: vec![TxOutput {
             value: Quantum::from_raw(INITIAL_SUBSIDY),
             locking_script: vec![OpCode::OpTrue as u8],
+            datum: Datum::None,
         }],
         locktime: 0,
     };
@@ -244,10 +255,12 @@ fn test_double_spend_rejection_protects_canonical_ledger() {
             previous_output: OutPoint::new(Hash256::ZERO, 0xFFFF_FFFF),
             unlocking_script: vec![],
             sequence: 0,
+            redeemer: None,
         }],
         outputs: vec![TxOutput {
             value: Quantum::from_raw(INITIAL_SUBSIDY),
             locking_script: vec![OpCode::OpTrue as u8],
+            datum: Datum::None,
         }],
         locktime: 0,
     };

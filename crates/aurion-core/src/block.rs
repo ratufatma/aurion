@@ -136,7 +136,7 @@ impl CanonicalCodec for Block {
 mod tests {
     use super::*;
     use crate::outpoint::OutPoint;
-    use crate::tx::{TxInput, TxOutput};
+    use crate::tx::{Datum, TxInput, TxOutput};
     use aurion_primitives::quantum::Quantum;
 
     #[test]
@@ -147,10 +147,12 @@ mod tests {
                 previous_output: OutPoint::new(Hash256::ZERO, 0),
                 unlocking_script: vec![0x10],
                 sequence: 0,
+                redeemer: None,
             }],
             outputs: vec![TxOutput {
                 value: Quantum::from_raw(50_000_000),
                 locking_script: vec![0x20],
+                datum: Datum::None,
             }],
             locktime: 0,
         };

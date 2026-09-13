@@ -137,7 +137,6 @@ version = "0.1.0"
 dependencies = [
  "aurion-core",
  "aurion-primitives",
- "aurion-script",
  "serde",
  "thiserror 1.0.69",
 ]
@@ -205,6 +204,8 @@ dependencies = [
 name = "aurion-script"
 version = "0.1.0"
 dependencies = [
+ "aurion-core",
+ "aurion-eutxo",
  "aurion-primitives",
  "ed25519-dalek",
  "thiserror 1.0.69",

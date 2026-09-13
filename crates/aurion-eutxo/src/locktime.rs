@@ -3,7 +3,7 @@ use crate::error::EutxoError;
 use crate::state::ExtendedUtxo;
 
 pub const LOCKTIME_THRESHOLD_UNIX: u64 = 500_000_000;
-pub const SEQUENCE_DISABLE_FLAG: u64 = 0x8000_0000;
+pub const SEQUENCE_DISABLE_FLAG: u32 = 0x8000_0000;
 
 pub fn verify_transaction_locktime(
     tx: &Transaction,
@@ -34,7 +34,7 @@ pub fn verify_transaction_locktime(
 }
 
 pub fn verify_relative_sequence(
-    input_sequence: u64,
+    input_sequence: u32,
     utxo: &ExtendedUtxo,
     current_height: u64,
     input_index: usize,
@@ -44,7 +44,7 @@ pub fn verify_relative_sequence(
         return Ok(());
     }
 
-    let required_delay = input_sequence & 0x0000_FFFF;
+    let required_delay = (input_sequence & 0x0000_FFFF) as u64;
     let passed_blocks = current_height.saturating_sub(utxo.creation_height);
 
     if passed_blocks < required_delay {
@@ -73,6 +73,7 @@ mod tests {
                 previous_output: OutPoint::new(Hash256::ZERO, 0),
                 unlocking_script: vec![],
                 sequence: 0,
+                redeemer: None,
             }],
             outputs: vec![],
             locktime: 500,
@@ -90,6 +91,7 @@ mod tests {
                 previous_output: OutPoint::new(Hash256::ZERO, 0),
                 unlocking_script: vec![],
                 sequence: 0,
+                redeemer: None,
             }],
             outputs: vec![],
             locktime: 1_700_000_000,

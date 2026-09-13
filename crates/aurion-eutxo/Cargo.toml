@@ -9,6 +9,5 @@ workspace = true
 [dependencies]
 aurion-primitives = { path = "../aurion-primitives" }
 aurion-core = { path = "../aurion-core" }
-aurion-script = { path = "../aurion-script" }
 serde = { version = "1.0", default-features = false, features = ["alloc", "derive"] }
 thiserror = "1.0"

@@ -33,7 +33,6 @@ pub fn verify_coinbase_maturity(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use aurion_core::tx::TxOutput;
     use aurion_primitives::hash::Hash256;
     use aurion_primitives::quantum::Quantum;
 
@@ -41,12 +40,11 @@ mod tests {
     fn test_coinbase_maturity_threshold() {
         let op = OutPoint::new(Hash256::ZERO, 0);
         let coinbase_utxo = ExtendedUtxo::new(
-            TxOutput {
-                value: Quantum::from_raw(100),
-                locking_script: vec![],
-            },
+            Quantum::from_raw(100),
+            vec![],
             10,
             true,
+            aurion_core::tx::Datum::None,
         );
 
         // Harus ditolak sebelum tinggi 110 (10 + 100)
@@ -55,7 +53,13 @@ mod tests {
         assert!(verify_coinbase_maturity(&op, &coinbase_utxo, 200).is_ok());
 
         // Regular non-coinbase bebas dibelanjakan kapan pun
-        let regular_utxo = ExtendedUtxo::new(coinbase_utxo.output.clone(), 10, false);
+        let regular_utxo = ExtendedUtxo::new(
+            coinbase_utxo.value,
+            coinbase_utxo.locking_script.clone(),
+            10,
+            false,
+            aurion_core::tx::Datum::None,
+        );
         assert!(verify_coinbase_maturity(&op, &regular_utxo, 11).is_ok());
     }
 }

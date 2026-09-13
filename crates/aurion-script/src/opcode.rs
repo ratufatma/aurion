@@ -27,6 +27,16 @@ pub enum OpCode {
     OpHash256 = 0xaa,
     OpCheckSig = 0xac,
     OpCheckSigVerify = 0xad,
+
+    // Covenants & Introspection (SPEC-05)
+    OpTxInputsCount = 0xc0,
+    OpCurrentInputIdx = 0xc1,
+    OpTxOutputsCount = 0xc2,
+    OpTxOutputValue = 0xc3,
+    OpTxOutputScript = 0xc4,
+    OpTxOutputDatum = 0xc5,
+    OpTxLocktime = 0xc6,
+    OpValidationHeight = 0xc7,
 }
 
 impl OpCode {
@@ -47,6 +57,14 @@ impl OpCode {
             0xaa => Some(Self::OpHash256),
             0xac => Some(Self::OpCheckSig),
             0xad => Some(Self::OpCheckSigVerify),
+            0xc0 => Some(Self::OpTxInputsCount),
+            0xc1 => Some(Self::OpCurrentInputIdx),
+            0xc2 => Some(Self::OpTxOutputsCount),
+            0xc3 => Some(Self::OpTxOutputValue),
+            0xc4 => Some(Self::OpTxOutputScript),
+            0xc5 => Some(Self::OpTxOutputDatum),
+            0xc6 => Some(Self::OpTxLocktime),
+            0xc7 => Some(Self::OpValidationHeight),
             _ => None,
         }
     }

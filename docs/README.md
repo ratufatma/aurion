@@ -27,6 +27,7 @@ The Aurion Protocol is formally specified across six foundational specifications
 | [**SPEC-03: Storage & Persistence Protocol**](SPEC-03-STORAGE-PROTOCOL.md) | Database Integrity & Atomicity | Exclusive `redb` custody, 4 canonical table schemas, single-transaction atomic block commits (`all-or-nothing`), zero-copy canonical serialization. |
 | [**SPEC-04: Fault Taxonomy & Fail-Stop Semantics**](SPEC-04-FAULT-TAXONOMY.md) | Runtime Fault Classification & Lifecycle | Class 1 Operational Faults (non-fatal), Class 2 Consensus Faults (candidate rejection), Class 3 Integrity Faults (fatal fail-stop lock to `NodeState::Failed`). |
 | [**SPEC-05: Proof-of-Work & Dual-Engine Mining**](SPEC-05-CONSENSUS-AND-MINING.md) | Consensus Hashing & Hardware Negotiation | Blake3 PoW mathematical formulation, compact bits target calculation, dual-engine hardware negotiation (safe pure-Rust `wgpu` WGSL compute with deterministic Rayon CPU fallback), zero-float telemetry. |
+| [**SPEC-05-C: Smart Contracts & Covenants Engine**](SPEC-05-CONTRACTS.md) | Deterministic eUTXO Contracts & Covenants | $(D, R, C)$ model, zero-copy `ScriptContext`, introspection opcodes `0xC0..0xC7`, fail-stop invariant enforcement, defensive resource bounds. |
 | [**SPEC-06: P2P Wire Protocol & Network Boundary**](SPEC-06-P2P-NETWORK-PROTOCOL.md) | Wire Framing & Untrusted Network Boundary | Fixed 52-byte binary header framing, pre-allocation Blake3 payload checksums, 4 MB anti-DoS allocation ceiling, canonical message taxonomy, peer session lifecycle. |
 
 ---

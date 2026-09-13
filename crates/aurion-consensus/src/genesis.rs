@@ -1,6 +1,6 @@
 use aurion_core::block::{Block, BlockHeader};
 use aurion_core::outpoint::OutPoint;
-use aurion_core::tx::{Transaction, TxInput, TxOutput};
+use aurion_core::tx::{Datum, Transaction, TxInput, TxOutput};
 use aurion_primitives::hash::Hash256;
 use aurion_primitives::quantum::Quantum;
 use crate::difficulty::MAX_TARGET_BITS;
@@ -8,7 +8,7 @@ use crate::subsidy::{CREATOR_ALLOCATION_AUR, DEV_ALLOCATION_AUR, QUANTA_PER_AUR}
 
 pub const GENESIS_TIMESTAMP: u64 = 1773446400; // Epoch kanonikal Aurion 2026
 pub const GENESIS_PAYLOAD: &[u8] = b"Aurion: Sovereign Monolithic Digital Asset - Pure Truth";
-pub const GENESIS_NONCE: u64 = 58536; // Mined canonical nonce satisfying MAX_TARGET_BITS
+pub const GENESIS_NONCE: u64 = 124776; // Mined canonical nonce satisfying MAX_TARGET_BITS
 
 pub fn create_genesis_block() -> Block {
     let creator_value = Quantum::new(CREATOR_ALLOCATION_AUR.saturating_mul(QUANTA_PER_AUR));
@@ -20,15 +20,18 @@ pub fn create_genesis_block() -> Block {
             previous_output: OutPoint::new(Hash256::ZERO, 0xFFFF_FFFF),
             unlocking_script: GENESIS_PAYLOAD.to_vec(),
             sequence: 0xFFFF_FFFF,
+            redeemer: None,
         }],
         outputs: vec![
             TxOutput {
                 value: creator_value,
                 locking_script: vec![0x51], // OP_TRUE / unencumbered creator output
+                datum: Datum::None,
             },
             TxOutput {
                 value: dev_value,
                 locking_script: vec![0x51], // OP_TRUE / unencumbered developer fund output
+                datum: Datum::None,
             },
         ],
         locktime: 0,

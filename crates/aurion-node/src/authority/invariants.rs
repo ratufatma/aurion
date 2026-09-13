@@ -1,8 +1,9 @@
 use aurion_core::block::Block;
 use aurion_core::outpoint::OutPoint;
 use aurion_core::tx::TxOutput;
+use aurion_eutxo::ExtendedUtxo;
 use aurion_primitives::quantum::Quantum;
-use aurion_script::{ScriptEngine, ScriptError};
+use aurion_script::{ScriptContext, ScriptEngine, ScriptError};
 use std::collections::HashSet;
 use thiserror::Error;
 
@@ -35,7 +36,7 @@ pub enum InvariantError {
 /// Memverifikasi seluruh invarian blok sebelum commit:
 /// 1. Ketiadaan pembelanjaan ganda (double-spend) di dalam blok.
 /// 2. Keberadaan UTXO pada ledger kanonikal.
-/// 3. Validasi eksekusi skrip deterministik (unlocking -> locking -> truthy).
+/// 3. Validasi eksekusi skrip deterministik dan kontrak pintar eUTXO (Datum, Redeemer, ScriptContext).
 /// 4. Hukum konservasi kuanta (sum(inputs) >= sum(outputs)).
 pub fn verify_block_invariants<F>(
     block: &Block,
@@ -52,31 +53,7 @@ where
             continue;
         }
 
-        let mut total_input_val = Quantum::ZERO;
-        for (input_idx, input) in tx.inputs.iter().enumerate() {
-            let op = input.previous_output;
-            if !spent_set.insert(op) {
-                return Err(InvariantError::DuplicateInputSpend(op));
-            }
-
-            let utxo = utxo_lookup(&op).ok_or(InvariantError::MissingUtxo(op))?;
-
-            // Evaluasi Script eUTXO
-            let sighash = tx.sighash(input_idx);
-            ScriptEngine::verify(&input.unlocking_script, &utxo.locking_script, &sighash)
-                .map_err(|err| InvariantError::ScriptExecutionFailed {
-                    txid: tx.txid().to_string(),
-                    input_index: input_idx,
-                    error: err,
-                })?;
-
-            total_input_val = total_input_val
-                .checked_add(utxo.value)
-                .map_err(|_| InvariantError::ArithmeticOverflow)?;
-
-            spent_inputs.push(op);
-        }
-
+        // 1. Hitung total nilai output
         let mut total_output_val = Quantum::ZERO;
         for output in &tx.outputs {
             total_output_val = total_output_val
@@ -84,12 +61,71 @@ where
                 .map_err(|_| InvariantError::ArithmeticOverflow)?;
         }
 
+        // 2. Kumpulkan UTXO input, cegah double spend, dan hitung total nilai input
+        let mut tx_spent_utxos = Vec::with_capacity(tx.inputs.len());
+        let mut total_input_val = Quantum::ZERO;
+
+        for (input_idx, input) in tx.inputs.iter().enumerate() {
+            let op = input.previous_output;
+            if !spent_set.insert(op) {
+                return Err(InvariantError::DuplicateInputSpend(op));
+            }
+
+            let utxo = utxo_lookup(&op).ok_or(InvariantError::MissingUtxo(op))?;
+            total_input_val = total_input_val
+                .checked_add(utxo.value)
+                .map_err(|_| InvariantError::ArithmeticOverflow)?;
+
+            tx_spent_utxos.push((input_idx, input, utxo));
+        }
+
+        // 3. Verifikasi hukum konservasi nilai dan hitung fee transaksi
         if total_input_val < total_output_val {
             return Err(InvariantError::ValueInflation {
                 txid: tx.txid().to_string(),
                 inputs: total_input_val.to_string(),
                 outputs: total_output_val.to_string(),
             });
+        }
+
+        let tx_fee = total_input_val
+            .checked_sub(total_output_val)
+            .map_err(|_| InvariantError::ArithmeticOverflow)?;
+
+        // 4. Evaluasi kontrak pintar eUTXO untuk setiap input dengan ScriptContext
+        for (input_idx, input, utxo) in tx_spent_utxos {
+            let spent_extended_utxo = ExtendedUtxo::from_output(&utxo, 0, false);
+            let ctx = ScriptContext {
+                tx,
+                current_input_index: input_idx,
+                current_spent_utxo: &spent_extended_utxo,
+                fee: tx_fee,
+                validation_height: block.header.height,
+            };
+
+            let mut engine = ScriptEngine::new(Some(&ctx));
+            let valid = engine
+                .execute_contract(
+                    &spent_extended_utxo.locking_script,
+                    &input.unlocking_script,
+                    &spent_extended_utxo.datum,
+                    input.redeemer.as_deref(),
+                )
+                .map_err(|err| InvariantError::ScriptExecutionFailed {
+                    txid: tx.txid().to_string(),
+                    input_index: input_idx,
+                    error: err,
+                })?;
+
+            if !valid {
+                return Err(InvariantError::ScriptExecutionFailed {
+                    txid: tx.txid().to_string(),
+                    input_index: input_idx,
+                    error: ScriptError::ScriptFailed,
+                });
+            }
+
+            spent_inputs.push(input.previous_output);
         }
     }
 
@@ -99,7 +135,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use aurion_core::tx::{Transaction, TxInput};
+    use aurion_core::tx::{Datum, Transaction, TxInput};
     use aurion_primitives::hash::Hash256;
     use aurion_script::OpCode;
     use std::collections::HashMap;
@@ -113,6 +149,7 @@ mod tests {
             TxOutput {
                 value: Quantum::from_raw(100),
                 locking_script: vec![OpCode::OpTrue as u8],
+                datum: Datum::None,
             },
         );
 
@@ -122,10 +159,12 @@ mod tests {
                 previous_output: prev_op,
                 unlocking_script: vec![],
                 sequence: 0,
+                redeemer: None,
             }],
             outputs: vec![TxOutput {
                 value: Quantum::from_raw(80),
                 locking_script: vec![OpCode::OpTrue as u8],
+                datum: Datum::None,
             }],
             locktime: 0,
         };
@@ -157,6 +196,7 @@ mod tests {
             TxOutput {
                 value: Quantum::from_raw(100),
                 locking_script: vec![OpCode::OpFalse as u8],
+                datum: Datum::None,
             },
         );
 
@@ -166,10 +206,12 @@ mod tests {
                 previous_output: prev_op,
                 unlocking_script: vec![],
                 sequence: 0,
+                redeemer: None,
             }],
             outputs: vec![TxOutput {
                 value: Quantum::from_raw(50),
                 locking_script: vec![OpCode::OpTrue as u8],
+                datum: Datum::None,
             }],
             locktime: 0,
         };
@@ -206,6 +248,7 @@ mod tests {
             TxOutput {
                 value: Quantum::from_raw(100),
                 locking_script: vec![OpCode::OpTrue as u8],
+                datum: Datum::None,
             },
         );
 
@@ -216,10 +259,12 @@ mod tests {
                 previous_output: prev_op,
                 unlocking_script: vec![],
                 sequence: 0,
+                redeemer: None,
             }],
             outputs: vec![TxOutput {
                 value: Quantum::from_raw(150),
                 locking_script: vec![OpCode::OpTrue as u8],
+                datum: Datum::None,
             }],
             locktime: 0,
         };

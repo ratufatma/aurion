@@ -8,5 +8,7 @@ workspace = true
 
 [dependencies]
 aurion-primitives = { path = "../aurion-primitives" }
+aurion-core = { path = "../aurion-core" }
+aurion-eutxo = { path = "../aurion-eutxo" }
 ed25519-dalek = { version = "2.1", default-features = false }
 thiserror = "1.0"

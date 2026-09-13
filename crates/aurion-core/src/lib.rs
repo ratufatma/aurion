@@ -10,4 +10,4 @@ pub mod tx;
 pub use block::{Block, BlockHeader};
 pub use merkle::compute_merkle_root;
 pub use outpoint::OutPoint;
-pub use tx::{Transaction, TxInput, TxOutput};
+pub use tx::{Datum, Transaction, TxInput, TxOutput};
