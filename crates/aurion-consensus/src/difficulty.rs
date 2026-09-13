@@ -22,7 +22,7 @@ pub fn compact_to_target(bits: u32) -> Result<[u8; 32], ConsensusError> {
         None => return Err(ConsensusError::InvalidCompactBits(bits)),
     };
 
-    if shift_index.checked_add(3).map_or(true, |end| end > 32) {
+    if shift_index.checked_add(3).is_none_or(|end| end > 32) {
         return Err(ConsensusError::InvalidCompactBits(bits));
     }
 

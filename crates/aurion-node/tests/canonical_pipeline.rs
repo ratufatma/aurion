@@ -1,5 +1,6 @@
 #![allow(unused_imports)]
 #![allow(clippy::arithmetic_side_effects)]
+#![allow(clippy::unwrap_used, clippy::expect_used)]
 
 use std::sync::Arc;
 use tempfile::NamedTempFile;

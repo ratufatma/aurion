@@ -37,7 +37,12 @@ async fn main() {
     match cli.command {
         Commands::Node(args) => commands::node::run(args).await,
         Commands::Wallet(args) => commands::wallet::run(args).await,
-        Commands::Mine(args) => commands::mine::run(args).await,
+        Commands::Mine(args) => {
+            if let Err(err) = commands::mine::run(args).await {
+                tracing::error!("Mining terminated with error: {err}");
+                std::process::exit(1);
+            }
+        }
         Commands::Indexer(args) => commands::indexer::run(args).await,
     }
 }

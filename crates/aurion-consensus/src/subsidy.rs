@@ -21,10 +21,9 @@ pub const INITIAL_SUBSIDY: u128 = INITIAL_SUBSIDY_QUANTA.raw();
 pub const HALVING_INTERVAL: u64 = SUBSIDY_HALVING_INTERVAL;
 
 pub fn calculate_block_subsidy(height: u64) -> Quantum {
-    let halvings = match height.checked_div(SUBSIDY_HALVING_INTERVAL) {
-        Some(h) => h,
-        None => 0,
-    };
+    let halvings = height
+        .checked_div(SUBSIDY_HALVING_INTERVAL)
+        .unwrap_or_default();
 
     if halvings >= MAX_HALVINGS {
         return Quantum::ZERO;

@@ -50,12 +50,18 @@ impl AuthorityEngine {
 
     #[inline]
     pub fn state(&self) -> NodeState {
-        self.state.read().unwrap().clone()
+        match self.state.read() {
+            Ok(guard) => guard.clone(),
+            Err(poisoned) => poisoned.into_inner().clone(),
+        }
     }
 
     pub fn enforce_operational(&self) -> Result<(), AuthorityError> {
-        let current_state = self.state.read().unwrap();
-        if !current_state.is_operational() {
+        let is_operational = match self.state.read() {
+            Ok(guard) => guard.is_operational(),
+            Err(poisoned) => poisoned.into_inner().is_operational(),
+        };
+        if !is_operational {
             return Err(AuthorityError::NodeHalted);
         }
         Ok(())
@@ -71,7 +77,10 @@ impl AuthorityEngine {
         );
 
         {
-            let mut state = self.state.write().unwrap();
+            let mut state = match self.state.write() {
+                Ok(guard) => guard,
+                Err(poisoned) => poisoned.into_inner(),
+            };
             *state = NodeState::Failed(fault);
         }
 
@@ -79,8 +88,13 @@ impl AuthorityEngine {
     }
 
     pub fn initialize_genesis(&self) -> Result<(), AuthorityError> {
-        let mut state = self.state.write().unwrap();
-        *state = NodeState::Recovering;
+        {
+            let mut state = match self.state.write() {
+                Ok(guard) => guard,
+                Err(poisoned) => poisoned.into_inner(),
+            };
+            *state = NodeState::Recovering;
+        }
 
         let tip = self.storage.get_tip().map_err(|e| {
             AuthorityError::Storage(e.to_string())
@@ -94,7 +108,13 @@ impl AuthorityEngine {
             tracing::info!("Initialized canonical genesis block in redb storage");
         }
 
-        *state = NodeState::Running;
+        {
+            let mut state = match self.state.write() {
+                Ok(guard) => guard,
+                Err(poisoned) => poisoned.into_inner(),
+            };
+            *state = NodeState::Running;
+        }
         Ok(())
     }
 

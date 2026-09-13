@@ -1,5 +1,6 @@
 #![forbid(unsafe_code)]
 #![deny(clippy::float_arithmetic)]
+#![cfg_attr(test, allow(clippy::unwrap_used, clippy::expect_used))]
 
 pub mod engine;
 pub mod error;
