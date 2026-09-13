@@ -93,6 +93,7 @@ version = "0.1.0"
 dependencies = [
  "aurion-primitives",
  "serde",
+ "thiserror",
 ]
 
 [[package]]
