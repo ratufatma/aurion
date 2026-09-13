@@ -5,6 +5,7 @@ members = [
     "crates/aurion-core",
     "crates/aurion-script",
     "crates/aurion-consensus",
+    "crates/aurion-eutxo",
     "apps/aurion-node",
     "apps/aurion-cli",
     "services/aurion-indexer",

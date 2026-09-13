@@ -98,6 +98,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "aurion-eutxo"
+version = "0.1.0"
+dependencies = [
+ "aurion-core",
+ "aurion-primitives",
+ "aurion-script",
+ "serde",
+ "thiserror",
+]
+
+[[package]]
 name = "aurion-indexer"
 version = "0.1.0"
 dependencies = [
