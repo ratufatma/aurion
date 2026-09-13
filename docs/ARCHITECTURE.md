@@ -19,7 +19,7 @@ Every domain is strictly isolated: pure mathematical ledger rules are decoupled 
                ▼                                            ▼
  ┌───────────────────────────┐                ┌───────────────────────────┐
  │   L1: aurion-network      │                │       L2: aurion-rpc      │
- │  (Binary Wire Framing)    │                │    (IPC / RPC Schemas)    │
+ │  (Binary Wire Framing)    │                │  (Canonical IPC Bridge)   │
  └─────────────┬─────────────┘                └─────────────┬─────────────┘
                │                                            │
                ▼                                            ▼
@@ -101,7 +101,7 @@ Every domain is strictly isolated: pure mathematical ledger rules are decoupled 
 - **Crates:** `aurion-rpc`, `bin/aurion` (`wallet`, `mine`).
 - **Invariants:**
   - **Strict Storage Isolation:** Client tools must never import `aurion-storage` or open database handles.
-  - **Thin-Client Architecture:** All wallet mutations, balance lookups, and mining template requests are submitted via authenticated IPC / JSON-RPC to the running L1 node daemon.
+  - **Thin-Client Architecture:** All wallet mutations, balance lookups, and mining template requests are submitted via canonical length-delimited IPC/RPC (frame ceiling $4\text{ MB}$, deterministic `CanonicalCodec`) to the running L1 node daemon.
 
 ### Layer 3: Derived Observers & Projections
 - **Crates:** `aurion-indexer`, `bin/aurion` (`indexer`).

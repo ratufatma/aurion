@@ -4,7 +4,7 @@
 [![Rust](https://img.shields.io/badge/rust-2021%20edition-orange.svg)](Cargo.toml)
 [![Safety](https://img.shields.io/badge/unsafe-forbid-brightgreen.svg)](Cargo.toml)
 [![Arithmetic](https://img.shields.io/badge/floats-denied-red.svg)](Cargo.toml)
-[![Tests](https://img.shields.io/badge/tests-35%20passed-success.svg)](tests/)
+[![Tests](https://img.shields.io/badge/tests-78%20passed-success.svg)](tests/)
 
 Aurion is a sovereign, pure-Rust cryptocurrency protocol engineered with strict sovereignty boundaries (**Single Sovereign Authority**), zero-float arithmetic guarantees, and deterministic fail-stop execution semantics.
 
@@ -30,7 +30,7 @@ aurion/
 │   ├── aurion-storage/             # L1: Atomic redb storage engine (blocks, utxos, metadata)
 │   ├── aurion-network/             # L1: Wire framing (52-byte header), Blake3 checksum, anti-DoS
 │   ├── aurion-node/                # L1: Node lifecycle, Authority engine, Fail-stop tripwires
-│   ├── aurion-rpc/                 # L2: IPC / JSON-RPC protocol schemas and DTOs
+│   ├── aurion-rpc/                 # L2: Canonical IPC/RPC bridge (frame, server, client)
 │   └── aurion-indexer/             # L3: Relational SQLite projection library (read-only observer)
 └── bin/
     └── aurion/                     # UNIFIED EXECUTABLE TARGET (Daemon & CLI)
@@ -55,7 +55,7 @@ aurion/
   - [`crates/aurion-node`](crates/aurion-node/): Runtime state machine and `AuthorityEngine`. Enforces ledger invariants and immediate fail-stop locking upon detecting data corruption or invariant breach.
 
 - **L2 — Interface Protocols & Clients:**
-  - [`crates/aurion-rpc`](crates/aurion-rpc/): Type-safe IPC / RPC schemas and data transfer objects connecting thin clients to the node daemon.
+  - [`crates/aurion-rpc`](crates/aurion-rpc/): Sub-millisecond, canonical length-delimited IPC/RPC bridge — 4-byte BE framing engine, deterministic `CanonicalCodec` message protocol, `RpcServer`, and thin `RpcClient` connecting `aurion mine` / `aurion wallet` to the L1 node daemon.
   - [`bin/aurion`](bin/aurion/): The sole binary executable target providing unified CLI subcommands (`node`, `wallet`, `mine`, `indexer`).
 
 - **L3 — Observers & Projections:**
@@ -96,6 +96,7 @@ Protocol specifications and conceptual architecture are formally documented in [
 - [**SPEC-04: Fault Taxonomy & Fail-Stop Semantics**](docs/SPEC-04-FAULT-TAXONOMY.md) — Operational vs. Integrity faults and fail-stop state machine lifecycle.
 - [**SPEC-05: Proof-of-Work & Dual-Engine Mining**](docs/SPEC-05-CONSENSUS-AND-MINING.md) — Blake3 PoW math, compact bits target calculation, safe `wgpu` GPU / Rayon CPU fallback.
 - [**SPEC-06: P2P Wire Protocol & Network Boundary**](docs/SPEC-06-P2P-NETWORK-PROTOCOL.md) — Binary 52-byte header framing, Blake3 payload checksum, 4 MB anti-DoS ceiling.
+- [**SPEC-07: IPC/RPC Transport & Mining Bridge**](docs/SPEC-07-IPC-RPC-PROTOCOL.md) — 4-byte BE length-delimited local framing, canonical request/response taxonomy, 4 MB anti-DoS ceiling, sub-millisecond mining template/submit lifecycle.
 
 ---
 
@@ -167,7 +168,7 @@ cargo clippy --workspace --all-targets
 ```
 
 ### Running the Test Suite
-Aurion features a comprehensive suite of **35 unit and integration tests** validating cryptographic primitives, canonical codecs, script execution, eUTXO rules, atomic storage, wire framing, the 66M hard cap monetary schedule, and end-to-end chain lifecycles:
+Aurion features a comprehensive suite of **78 unit and integration tests** validating cryptographic primitives, canonical codecs, script execution, eUTXO rules, atomic storage, wire framing, the 66M hard cap monetary schedule, the IPC/RPC bridge (frame limits, protocol round-trips, loopback client/server), and end-to-end chain lifecycles:
 
 ```bash
 cargo test --workspace

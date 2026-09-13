@@ -29,6 +29,7 @@ The Aurion Protocol is formally specified across six foundational specifications
 | [**SPEC-05: Proof-of-Work & Dual-Engine Mining**](SPEC-05-CONSENSUS-AND-MINING.md) | Consensus Hashing & Hardware Negotiation | Blake3 PoW mathematical formulation, compact bits target calculation, dual-engine hardware negotiation (safe pure-Rust `wgpu` WGSL compute with deterministic Rayon CPU fallback), zero-float telemetry. |
 | [**SPEC-05-C: Smart Contracts & Covenants Engine**](SPEC-05-CONTRACTS.md) | Deterministic eUTXO Contracts & Covenants | $(D, R, C)$ model, zero-copy `ScriptContext`, introspection opcodes `0xC0..0xC7`, fail-stop invariant enforcement, defensive resource bounds. |
 | [**SPEC-06: P2P Wire Protocol & Network Boundary**](SPEC-06-P2P-NETWORK-PROTOCOL.md) | Wire Framing & Untrusted Network Boundary | Fixed 52-byte binary header framing, pre-allocation Blake3 payload checksums, 4 MB anti-DoS allocation ceiling, canonical message taxonomy, peer session lifecycle. |
+| [**SPEC-07: IPC/RPC Transport & Mining Bridge**](SPEC-07-IPC-RPC-PROTOCOL.md) | Local Transport & Mining Integration | 4-byte BE length-delimited framing, canonical request/response message taxonomy, 4 MB anti-DoS ceiling, sub-millisecond mining template/submit lifecycle, `NodeRpcHandler` abstraction. |
 
 ---
 
@@ -40,7 +41,7 @@ All implementations within the Aurion ecosystem must strictly adhere to four imm
    Ledger rules are stateless mathematical functions. They consume binary byte slices and return binary verdicts. No ambient I/O, system clock reads, or thread concurrency are permitted in Layer 0.
 
 2. **Single Sovereign Custody (L1):**
-   Only the L1 node daemon owns, opens, or mutates the physical `redb` database. Client applications communicate strictly over IPC / JSON-RPC.
+   Only the L1 node daemon owns, opens, or mutates the physical `redb` database. Client applications communicate strictly over canonical length-delimited IPC/RPC.
 
 3. **Zero-Float Accounting:**
    Floating-point types (`f32`, `f64`) are banned across the workspace. All economic valuations are represented as exact integers in `Quantum` ($10^{-8}\text{ AUR}$, $u128$).
