@@ -2,19 +2,21 @@
 #![deny(clippy::float_arithmetic)]
 #![deny(clippy::arithmetic_side_effects)]
 
-use aurion_primitives::hash::Hash256;
 use crate::error::NetworkError;
 
 /// The canonical Aurion wire protocol magic identifier: `AUR\x01`.
 pub const MAGIC_BYTES: [u8; 4] = *b"AUR\x01";
 
-/// Size of the canonical 52-byte frame header (magic + command + length + checksum).
+/// Size of the fixed canonical frame header (magic + command + length + checksum).
 pub const HEADER_SIZE: usize = 52;
+
+/// Size of the null-padded ASCII command field inside the header.
+pub const COMMAND_SIZE: usize = 12;
 
 /// Anti-DoS hard cap: maximum payload bytes that may be allocated (4 MB).
 pub const MAX_PAYLOAD_SIZE: usize = 4 * 1024 * 1024;
 
-/// Encode a command name and raw payload into the 52-byte canonical Aurion wire frame:
+/// Encode a command name and raw payload into the canonical 52-byte Aurion wire frame:
 ///
 /// ```text
 /// [0..4]   Magic bytes  (AUR\x01)
@@ -25,22 +27,29 @@ pub const MAX_PAYLOAD_SIZE: usize = 4 * 1024 * 1024;
 /// ```
 ///
 /// # Errors
-/// Returns [`NetworkError::PayloadTooLarge`] if `payload.len() > MAX_PAYLOAD_SIZE`.
+/// - Returns [`NetworkError::CommandTooLong`] if `command` exceeds 12 ASCII bytes.
+/// - Returns [`NetworkError::PayloadTooLarge`] if `payload.len() > MAX_PAYLOAD_SIZE`.
 pub fn pack_frame(command: &str, payload: &[u8]) -> Result<Vec<u8>, NetworkError> {
-    if payload.len() > MAX_PAYLOAD_SIZE {
-        return Err(NetworkError::PayloadTooLarge(payload.len()));
+    if command.len() > COMMAND_SIZE {
+        return Err(NetworkError::CommandTooLong(command.to_owned()));
     }
 
-    let checksum = Hash256::digest(payload);
+    if payload.len() > MAX_PAYLOAD_SIZE {
+        return Err(NetworkError::PayloadTooLarge {
+            declared: payload.len(),
+            max: MAX_PAYLOAD_SIZE,
+        });
+    }
+
+    let checksum = blake3::hash(payload);
     let payload_len = payload.len() as u32;
 
     let mut frame = Vec::with_capacity(payload.len().saturating_add(HEADER_SIZE));
     frame.extend_from_slice(&MAGIC_BYTES);
 
-    // 12-byte null-padded ASCII command
-    let mut cmd_bytes = [0u8; 12];
-    let copy_len = command.len().min(12);
-    cmd_bytes[..copy_len].copy_from_slice(&command.as_bytes()[..copy_len]);
+    // 12-byte null-padded ASCII command field
+    let mut cmd_bytes = [0u8; COMMAND_SIZE];
+    cmd_bytes[..command.len()].copy_from_slice(command.as_bytes());
     frame.extend_from_slice(&cmd_bytes);
 
     frame.extend_from_slice(&payload_len.to_be_bytes());
@@ -54,16 +63,18 @@ pub fn pack_frame(command: &str, payload: &[u8]) -> Result<Vec<u8>, NetworkError
 /// 52-byte canonical wire frame header, magic bytes, and Blake3 checksum.
 ///
 /// # Errors
-/// - [`NetworkError::IncompleteFrame`] if `raw.len() < 52`.
+/// - [`NetworkError::IncompleteHeader`] if `raw.len() < 52`.
 /// - [`NetworkError::InvalidMagic`] if magic bytes differ from `AUR\x01`.
-/// - [`NetworkError::PayloadTooLarge`] if declared length exceeds 4 MB.
-/// - [`NetworkError::CorruptedChecksum`] if Blake3 digest does not match.
+/// - [`NetworkError::InvalidCommandEncoding`] if the command field is not valid UTF-8.
+/// - [`NetworkError::PayloadTooLarge`] if the declared length exceeds 4 MB.
+/// - [`NetworkError::TruncatedPayload`] if the declared length exceeds the bytes present.
+/// - [`NetworkError::ChecksumMismatch`] if the Blake3 digest does not match.
 pub fn unpack_frame(raw: &[u8]) -> Result<(&str, &[u8]), NetworkError> {
     if raw.len() < HEADER_SIZE {
-        return Err(NetworkError::IncompleteFrame);
+        return Err(NetworkError::IncompleteHeader(raw.len()));
     }
 
-    let (header, payload_and_rest) = raw.split_at(HEADER_SIZE);
+    let (header, body) = raw.split_at(HEADER_SIZE);
 
     // ── Magic ──────────────────────────────────────────────────────────────
     let mut magic = [0u8; 4];
@@ -76,7 +87,7 @@ pub fn unpack_frame(raw: &[u8]) -> Result<(&str, &[u8]), NetworkError> {
     let cmd_raw = &header[4..16];
     let end = cmd_raw.iter().position(|&b| b == 0).unwrap_or(cmd_raw.len());
     let cmd_str = std::str::from_utf8(&cmd_raw[..end])
-        .map_err(|_| NetworkError::SerializationError("non-UTF8 command bytes".into()))?;
+        .map_err(|_| NetworkError::InvalidCommandEncoding)?;
 
     // ── Payload Length ─────────────────────────────────────────────────────
     let mut len_bytes = [0u8; 4];
@@ -84,80 +95,29 @@ pub fn unpack_frame(raw: &[u8]) -> Result<(&str, &[u8]), NetworkError> {
     let payload_len = u32::from_be_bytes(len_bytes) as usize;
 
     if payload_len > MAX_PAYLOAD_SIZE {
-        return Err(NetworkError::PayloadTooLarge(payload_len));
+        return Err(NetworkError::PayloadTooLarge {
+            declared: payload_len,
+            max: MAX_PAYLOAD_SIZE,
+        });
     }
 
-    if payload_and_rest.len() < payload_len {
-        return Err(NetworkError::IncompleteFrame);
+    if body.len() < payload_len {
+        return Err(NetworkError::TruncatedPayload {
+            declared: payload_len,
+            actual: body.len(),
+        });
     }
 
-    let payload = &payload_and_rest[..payload_len];
+    let payload = &body[..payload_len];
 
     // ── Blake3 Checksum ────────────────────────────────────────────────────
     let mut expected = [0u8; 32];
     expected.copy_from_slice(&header[20..52]);
-    let actual = Hash256::digest(payload);
+    let actual = blake3::hash(payload);
 
     if actual.as_bytes() != &expected {
-        return Err(NetworkError::CorruptedChecksum);
+        return Err(NetworkError::ChecksumMismatch);
     }
 
     Ok((cmd_str, payload))
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_pack_unpack_roundtrip() {
-        let payload = b"aurion-sovereign-digital-asset-protocol";
-        let frame = pack_frame("block", payload).unwrap();
-        assert_eq!(frame.len(), HEADER_SIZE + payload.len());
-
-        let (cmd, decoded_payload) = unpack_frame(&frame).unwrap();
-        assert_eq!(cmd, "block");
-        assert_eq!(decoded_payload, payload);
-    }
-
-    #[test]
-    fn test_unpack_frame_rejects_corrupted_checksum() {
-        let mut frame = pack_frame("tx", b"some-tx-bytes").unwrap();
-        // Corrupt a payload byte.
-        let corrupt_idx = HEADER_SIZE;
-        frame[corrupt_idx] ^= 0x55;
-
-        assert_eq!(
-            unpack_frame(&frame).unwrap_err(),
-            NetworkError::CorruptedChecksum
-        );
-    }
-
-    #[test]
-    fn test_unpack_frame_rejects_bad_magic() {
-        let mut frame = pack_frame("tx", b"data").unwrap();
-        frame[0] = 0x00;
-        assert!(matches!(
-            unpack_frame(&frame).unwrap_err(),
-            NetworkError::InvalidMagic(_)
-        ));
-    }
-
-    #[test]
-    fn test_unpack_frame_rejects_incomplete() {
-        assert_eq!(
-            unpack_frame(&[0u8; 10]).unwrap_err(),
-            NetworkError::IncompleteFrame
-        );
-    }
-
-    #[test]
-    fn test_pack_frame_rejects_oversized_payload() {
-        // 4 MB + 1 byte should be rejected immediately.
-        let oversized = vec![0u8; MAX_PAYLOAD_SIZE.saturating_add(1)];
-        assert!(matches!(
-            pack_frame("block", &oversized).unwrap_err(),
-            NetworkError::PayloadTooLarge(_)
-        ));
-    }
 }

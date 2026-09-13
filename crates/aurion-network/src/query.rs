@@ -41,7 +41,7 @@ impl<'s> SyncEngine<'s> {
                 Ok(sample) => {
                     let raw: Vec<u8> = sample.payload().to_bytes().to_vec();
                     if raw.len() < HEADER_SIZE {
-                        return Err(NetworkError::IncompleteFrame);
+                        return Err(NetworkError::IncompleteHeader(raw.len()));
                     }
                     let (_, payload) = unpack_frame(&raw)?;
                     return Ok(payload.to_vec());
@@ -118,7 +118,7 @@ impl<'s> SyncEngine<'s> {
                 Ok(sample) => {
                     let raw: Vec<u8> = sample.payload().to_bytes().to_vec();
                     if raw.len() < HEADER_SIZE {
-                        return Err(NetworkError::IncompleteFrame);
+                        return Err(NetworkError::IncompleteHeader(raw.len()));
                     }
                     let (_, payload) = unpack_frame(&raw)?;
                     return Ok(payload.to_vec());
@@ -155,7 +155,7 @@ impl<'s> SyncEngine<'s> {
                 Ok(sample) => {
                     let raw: Vec<u8> = sample.payload().to_bytes().to_vec();
                     if raw.len() < HEADER_SIZE {
-                        return Err(NetworkError::IncompleteFrame);
+                        return Err(NetworkError::IncompleteHeader(raw.len()));
                     }
                     let (_, payload) = unpack_frame(&raw)?;
                     return Ok(payload.to_vec());

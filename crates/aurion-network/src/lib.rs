@@ -11,9 +11,11 @@ pub mod query;
 pub mod session;
 pub mod topics;
 
-pub use config::NetworkConfig;
+#[cfg(test)]
+pub mod tests;
+
 pub use error::NetworkError;
 pub use frame::{pack_frame, unpack_frame, HEADER_SIZE, MAGIC_BYTES, MAX_PAYLOAD_SIZE};
 pub use gossip::GossipEngine;
 pub use query::SyncEngine;
-pub use session::PeerNetworkSession;
+pub use session::{NetworkConfig, PeerNetworkSession};

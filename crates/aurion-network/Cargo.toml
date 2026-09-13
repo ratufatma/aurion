@@ -11,10 +11,14 @@ workspace = true
 aurion-primitives = { path = "../aurion-primitives" }
 aurion-core       = { path = "../aurion-core" }
 
+# Wire-protocol integrity (canonical 52-byte frame checksum)
+blake3 = "1.5"
+
 # Decentralized P2P Transport (Eclipse Zenoh — brokerless peer mesh)
-# Only transport_tcp is enabled by default for maximum portability.
-# transport_quic and shared-memory are opt-in via workspace feature flags.
-zenoh = { version = "1.1", default-features = false, features = ["transport_tcp"] }
+# transport_tcp is the portable baseline; shared-memory adds zero-copy IPC.
+# transport_quic is intentionally NOT enabled: it requires a C toolchain to
+# build the ring/quinn QUIC stack, which is unavailable on this machine.
+zenoh = { version = "1.1", default-features = false, features = ["transport_tcp", "shared-memory"] }
 
 # Async runtime & concurrency
 tokio   = { version = "1", features = ["sync", "rt", "macros", "time"] }
