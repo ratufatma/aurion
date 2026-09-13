@@ -137,6 +137,8 @@ name = "aurion-script"
 version = "0.1.0"
 dependencies = [
  "aurion-primitives",
+ "ed25519-dalek",
+ "thiserror",
 ]
 
 [[package]]
