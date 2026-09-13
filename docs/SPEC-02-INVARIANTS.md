@@ -1,9 +1,9 @@
 # SPEC-02: Ledger Invariants & Mathematical Tripwires
 
-## 1. Konservasi Nilai
-* Jumlah input kuanta eUTXO harus tepat sama atau lebih besar dari output + fee.
-* Seluruh operasi kuanta menggunakan bilangan bulat `u128` murni (Zero-Float).
+## 1. Conservation of Value
+* The sum of eUTXO quantum inputs must equal or exceed output + fee.
+* All quantum calculations strictly use pure `u128` unsigned integers (Zero-Float arithmetic).
 
-## 2. Imutabilitas eUTXO
-* Input yang sudah dibelanjakan (*spent*) tidak dapat dibangkitkan kembali.
-* Identitas outpoint bersifat deterministik dan unik.
+## 2. eUTXO Immutability
+* Spent inputs can never be resurrected or respent.
+* Outpoint identifiers are deterministic, canonical, and globally unique.

@@ -1,6 +1,6 @@
 # SPEC-03: Storage & Persistence Protocol
 
-## 1. Otoritas Tunggal redb
-* Penyimpanan `redb` hanya boleh dibuka oleh `aurion-node`.
-* Mutasi disk wajib bersifat atomik (WriteTransaction).
-* Kegagalan komit disk pada blok kanonikal adalah *Integrity Fault* fatal yang langsung memicu status `NodeState::Failed`.
+## 1. Exclusive redb Authority
+* The underlying `redb` storage engine must only be opened and managed by `aurion-node`.
+* Disk mutations must be strictly atomic (`WriteTransaction`).
+* Any disk commit failure on canonical blocks constitutes a fatal *Integrity Fault*, immediately triggering `NodeState::Failed`.
