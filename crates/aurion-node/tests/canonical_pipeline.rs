@@ -114,7 +114,7 @@ fn test_end_to_end_canonical_chain_lifecycle() {
     // 6. Belanjakan UTXO Block 1 di Block 2 (Transfer ke Recipient B)
     let recipient_locking_script = vec![OpCode::OpTrue as u8]; // Unencumbered output
     let spend_val = Quantum::from_raw(2_000_000_000);
-    let change_val = Quantum::from_raw(3_000_000_000); // 2B + 3B = 5B (Zero Fee)
+    let change_val = Quantum::from_raw(7_900_000_000); // 2B + 7.9B = 9.9B (INITIAL_SUBSIDY, Zero Fee)
 
     let mut spend_tx = Transaction {
         version: 1,

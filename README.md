@@ -4,7 +4,7 @@
 [![Rust](https://img.shields.io/badge/rust-2021%20edition-orange.svg)](Cargo.toml)
 [![Safety](https://img.shields.io/badge/unsafe-forbid-brightgreen.svg)](Cargo.toml)
 [![Arithmetic](https://img.shields.io/badge/floats-denied-red.svg)](Cargo.toml)
-[![Tests](https://img.shields.io/badge/tests-34%20passed-success.svg)](tests/)
+[![Tests](https://img.shields.io/badge/tests-35%20passed-success.svg)](tests/)
 
 Aurion is a sovereign, pure-Rust cryptocurrency protocol engineered with strict sovereignty boundaries (**Single Sovereign Authority**), zero-float arithmetic guarantees, and deterministic fail-stop execution semantics.
 
@@ -157,7 +157,7 @@ cargo clippy --workspace --all-targets
 ```
 
 ### Running the Test Suite
-Aurion features a comprehensive suite of **34 unit and integration tests** validating cryptographic primitives, canonical codecs, script execution, eUTXO rules, atomic storage, wire framing, and end-to-end chain lifecycles:
+Aurion features a comprehensive suite of **35 unit and integration tests** validating cryptographic primitives, canonical codecs, script execution, eUTXO rules, atomic storage, wire framing, the 66M hard cap monetary schedule, and end-to-end chain lifecycles:
 
 ```bash
 cargo test --workspace

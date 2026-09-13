@@ -181,9 +181,13 @@ mod tests {
         let loaded_by_height = storage.get_block_by_height(0).unwrap().unwrap();
         assert_eq!(loaded_by_height.block_hash(), genesis_hash);
 
-        // Pastikan coinbase UTXO genesis terindeks di storage
-        let coinbase_outpoint = OutPoint::new(genesis.transactions[0].txid(), 0);
-        let utxo = storage.get_utxo(&coinbase_outpoint).unwrap().unwrap();
-        assert_eq!(utxo.value, genesis.transactions[0].outputs[0].value);
+        // Pastikan kedua coinbase UTXO genesis (Creator & Dev Fund) terindeks di storage
+        let creator_outpoint = OutPoint::new(genesis.transactions[0].txid(), 0);
+        let creator_utxo = storage.get_utxo(&creator_outpoint).unwrap().unwrap();
+        assert_eq!(creator_utxo.value, genesis.transactions[0].outputs[0].value);
+
+        let dev_outpoint = OutPoint::new(genesis.transactions[0].txid(), 1);
+        let dev_utxo = storage.get_utxo(&dev_outpoint).unwrap().unwrap();
+        assert_eq!(dev_utxo.value, genesis.transactions[0].outputs[1].value);
     }
 }

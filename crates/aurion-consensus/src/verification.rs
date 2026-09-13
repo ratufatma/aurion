@@ -44,7 +44,11 @@ pub fn verify_block_structure(block: &Block, expected_height: u64) -> Result<(),
         total_coinbase_output = total_coinbase_output.saturating_add(out.value.raw());
     }
 
-    let allowed_subsidy = calculate_block_subsidy(expected_height).raw();
+    let allowed_subsidy = if expected_height == 0 {
+        crate::subsidy::TOTAL_GENESIS_PREMINE_QUANTA.raw()
+    } else {
+        calculate_block_subsidy(expected_height).raw()
+    };
     if total_coinbase_output > allowed_subsidy {
         return Err(ConsensusError::SubsidyExceeded {
             allowed: allowed_subsidy,

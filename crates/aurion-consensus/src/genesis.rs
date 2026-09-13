@@ -4,12 +4,16 @@ use aurion_core::tx::{Transaction, TxInput, TxOutput};
 use aurion_primitives::hash::Hash256;
 use aurion_primitives::quantum::Quantum;
 use crate::difficulty::MAX_TARGET_BITS;
-use crate::subsidy::INITIAL_SUBSIDY;
+use crate::subsidy::{CREATOR_ALLOCATION_AUR, DEV_ALLOCATION_AUR, QUANTA_PER_AUR};
 
 pub const GENESIS_TIMESTAMP: u64 = 1773446400; // Epoch kanonikal Aurion 2026
 pub const GENESIS_PAYLOAD: &[u8] = b"Aurion: Sovereign Monolithic Digital Asset - Pure Truth";
+pub const GENESIS_NONCE: u64 = 58536; // Mined canonical nonce satisfying MAX_TARGET_BITS
 
 pub fn create_genesis_block() -> Block {
+    let creator_value = Quantum::new(CREATOR_ALLOCATION_AUR.saturating_mul(QUANTA_PER_AUR));
+    let dev_value = Quantum::new(DEV_ALLOCATION_AUR.saturating_mul(QUANTA_PER_AUR));
+
     let coinbase_tx = Transaction {
         version: 1,
         inputs: vec![TxInput {
@@ -17,10 +21,16 @@ pub fn create_genesis_block() -> Block {
             unlocking_script: GENESIS_PAYLOAD.to_vec(),
             sequence: 0xFFFF_FFFF,
         }],
-        outputs: vec![TxOutput {
-            value: Quantum::from_raw(INITIAL_SUBSIDY),
-            locking_script: vec![0x51], // OP_TRUE / unencumbered foundation output
-        }],
+        outputs: vec![
+            TxOutput {
+                value: creator_value,
+                locking_script: vec![0x51], // OP_TRUE / unencumbered creator output
+            },
+            TxOutput {
+                value: dev_value,
+                locking_script: vec![0x51], // OP_TRUE / unencumbered developer fund output
+            },
+        ],
         locktime: 0,
     };
 
@@ -32,7 +42,7 @@ pub fn create_genesis_block() -> Block {
         merkle_root,
         timestamp: GENESIS_TIMESTAMP,
         bits: MAX_TARGET_BITS,
-        nonce: 0,
+        nonce: GENESIS_NONCE,
         height: 0,
     };
 
@@ -42,14 +52,23 @@ pub fn create_genesis_block() -> Block {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::difficulty::check_pow;
 
     #[test]
     fn test_genesis_block_integrity() {
         let genesis = create_genesis_block();
+        println!(
+            "GENESIS NONCE: {}, HASH: {}, MERKLE: {}",
+            genesis.header.nonce,
+            genesis.block_hash(),
+            genesis.header.merkle_root
+        );
         assert_eq!(genesis.header.height, 0);
         assert_eq!(genesis.header.prev_block_hash, Hash256::ZERO);
         assert_eq!(genesis.transactions.len(), 1);
         assert!(genesis.transactions[0].is_coinbase());
+        assert_eq!(genesis.transactions[0].outputs.len(), 2);
         assert_eq!(genesis.calculate_merkle_root(), genesis.header.merkle_root);
+        assert!(check_pow(&genesis.block_hash(), genesis.header.bits).is_ok());
     }
 }

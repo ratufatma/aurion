@@ -10,11 +10,22 @@
    - All valuations are denominated in `Quantum(u128)`.
    - Overflow, underflow, or negative values are strictly prohibited through checked arithmetic.
 
-2. **Block Subsidy & Inflation Schedule:**
-   The block subsidy begins at $50 \times 10^9$ Quantum (50 AUR) and halves every $210{,}000$ blocks:
-   $$\text{Subsidy}(h) = \begin{cases} \lfloor \frac{50 \times 10^9}{2^{\lfloor h / 210000 \rfloor}} \rfloor & \text{if } \lfloor h / 210000 \rfloor < 64 \\ 0 & \text{otherwise} \end{cases}$$
-   The total coinbase reward for block $B$ at height $h$ cannot exceed:
-   $$\text{CoinbaseReward}(B) \le \text{Subsidy}(h) + \sum_{T \in B \setminus \{\text{coinbase}\}} \text{fee}(T)$$
+2. **Monetary Hard Cap & Emission Schedule (66,000,000 AUR):**
+   - **Scale & Unit:** $1 \text{ AUR} = 100{,}000{,}000 \text{ Quanta}$ (8 decimals).
+   - **Hard Cap:** $\text{MAX\_TOTAL\_SUPPLY} = 66{,}000{,}000 \text{ AUR} = 6{,}600{,}000{,}000{,}000{,}000 \text{ Quanta}$.
+   - **Genesis Premine Allocations (Height 0, 40%):**
+     - Creator Allocation (30%): $19{,}800{,}000 \text{ AUR} = 1{,}980{,}000{,}000{,}000{,}000 \text{ Quanta}$ (Output 0).
+     - Developer Fund (10%): $6{,}600{,}000 \text{ AUR} = 660{,}000{,}000{,}000{,}000 \text{ Quanta}$ (Output 1).
+     - Total Genesis Premine: $26{,}400{,}000 \text{ AUR} = 2{,}640{,}000{,}000{,}000{,}000 \text{ Quanta}$.
+   - **PoW Mining Subsidy (Height > 0, 60%):**
+     - Total PoW Target Emission: $39{,}600{,}000 \text{ AUR} = 3{,}960{,}000{,}000{,}000{,}000 \text{ Quanta}$.
+     - Initial Subsidy ($S_0$): $99 \text{ AUR} = 9{,}900{,}000{,}000 \text{ Quanta}$ per block.
+     - Halving Interval ($I$): $200{,}000 \text{ blocks}$.
+     - Proof of exact integer emission:
+       $$200{,}000 \times 99 \times 2 = 39{,}600{,}000 \text{ AUR}$$
+     $$\text{Subsidy}(h) = \begin{cases} \lfloor \frac{9{,}900{,}000{,}000}{2^{\lfloor h / 200000 \rfloor}} \rfloor & \text{if } \lfloor h / 200000 \rfloor < 64 \\ 0 & \text{otherwise} \end{cases}$$
+   - For block $B$ at height $h > 0$:
+     $$\text{CoinbaseReward}(B) \le \text{Subsidy}(h) + \sum_{T \in B \setminus \{\text{coinbase}\}} \text{fee}(T)$$
 
 ---
 

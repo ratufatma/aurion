@@ -18,12 +18,22 @@ impl Quantum {
     pub const MAX: Self = Self(u128::MAX);
 
     #[inline]
+    pub const fn new(raw: u128) -> Self {
+        Self(raw)
+    }
+
+    #[inline]
     pub const fn from_raw(raw: u128) -> Self {
         Self(raw)
     }
 
     #[inline]
     pub const fn raw(self) -> u128 {
+        self.0
+    }
+
+    #[inline]
+    pub const fn as_u128(self) -> u128 {
         self.0
     }
 

@@ -1,21 +1,36 @@
 use aurion_primitives::quantum::Quantum;
 
-pub const INITIAL_SUBSIDY_AUR: u128 = 50;
-pub const BASE_UNITS_PER_AUR: u128 = 100_000_000;
-pub const INITIAL_SUBSIDY: u128 = 5_000_000_000;
-pub const HALVING_INTERVAL: u64 = 210_000;
+pub const QUANTA_PER_AUR: u128 = 100_000_000;
+pub const MAX_TOTAL_SUPPLY_AUR: u128 = 66_000_000;
+pub const MAX_TOTAL_SUPPLY_QUANTA: Quantum =
+    Quantum::new(MAX_TOTAL_SUPPLY_AUR.saturating_mul(QUANTA_PER_AUR));
+
+pub const CREATOR_ALLOCATION_AUR: u128 = 19_800_000;
+pub const DEV_ALLOCATION_AUR: u128 = 6_600_000;
+pub const TOTAL_GENESIS_PREMINE_QUANTA: Quantum =
+    Quantum::new((CREATOR_ALLOCATION_AUR.saturating_add(DEV_ALLOCATION_AUR)).saturating_mul(QUANTA_PER_AUR));
+
+pub const INITIAL_SUBSIDY_AUR: u128 = 99;
+pub const INITIAL_SUBSIDY_QUANTA: Quantum =
+    Quantum::new(INITIAL_SUBSIDY_AUR.saturating_mul(QUANTA_PER_AUR));
+pub const SUBSIDY_HALVING_INTERVAL: u64 = 200_000;
+pub const MAX_HALVINGS: u64 = 64;
+
+// Backward-compatible aliases for legacy references
+pub const INITIAL_SUBSIDY: u128 = INITIAL_SUBSIDY_QUANTA.raw();
+pub const HALVING_INTERVAL: u64 = SUBSIDY_HALVING_INTERVAL;
 
 pub fn calculate_block_subsidy(height: u64) -> Quantum {
-    let halvings = match height.checked_div(HALVING_INTERVAL) {
+    let halvings = match height.checked_div(SUBSIDY_HALVING_INTERVAL) {
         Some(h) => h,
         None => 0,
     };
 
-    if halvings >= 64 {
+    if halvings >= MAX_HALVINGS {
         return Quantum::ZERO;
     }
 
-    let raw = INITIAL_SUBSIDY >> halvings;
+    let raw = INITIAL_SUBSIDY_QUANTA.raw() >> halvings;
     Quantum::from_raw(raw)
 }
 
@@ -25,10 +40,37 @@ mod tests {
 
     #[test]
     fn test_subsidy_halving_schedule() {
-        assert_eq!(calculate_block_subsidy(0), Quantum::from_raw(5_000_000_000));
-        assert_eq!(calculate_block_subsidy(209_999), Quantum::from_raw(5_000_000_000));
-        assert_eq!(calculate_block_subsidy(210_000), Quantum::from_raw(2_500_000_000));
-        assert_eq!(calculate_block_subsidy(420_000), Quantum::from_raw(1_250_000_000));
-        assert_eq!(calculate_block_subsidy(64 * HALVING_INTERVAL), Quantum::ZERO);
+        assert_eq!(calculate_block_subsidy(0), INITIAL_SUBSIDY_QUANTA);
+        assert_eq!(
+            calculate_block_subsidy(SUBSIDY_HALVING_INTERVAL.saturating_sub(1)),
+            INITIAL_SUBSIDY_QUANTA
+        );
+        assert_eq!(
+            calculate_block_subsidy(SUBSIDY_HALVING_INTERVAL),
+            Quantum::from_raw(INITIAL_SUBSIDY_QUANTA.raw() >> 1)
+        );
+        assert_eq!(
+            calculate_block_subsidy(SUBSIDY_HALVING_INTERVAL.saturating_mul(2)),
+            Quantum::from_raw(INITIAL_SUBSIDY_QUANTA.raw() >> 2)
+        );
+        assert_eq!(
+            calculate_block_subsidy(MAX_HALVINGS.saturating_mul(SUBSIDY_HALVING_INTERVAL)),
+            Quantum::ZERO
+        );
+    }
+
+    #[test]
+    fn test_cumulative_emission_does_not_exceed_hard_cap() {
+        let mut cumulative_pow_quanta = 0u128;
+        for era in 0..MAX_HALVINGS {
+            let subsidy = INITIAL_SUBSIDY_QUANTA.raw() >> era;
+            let era_emission = subsidy.saturating_mul(SUBSIDY_HALVING_INTERVAL as u128);
+            cumulative_pow_quanta = cumulative_pow_quanta.saturating_add(era_emission);
+        }
+
+        let total_supply_emitted =
+            cumulative_pow_quanta.saturating_add(TOTAL_GENESIS_PREMINE_QUANTA.raw());
+        assert!(total_supply_emitted <= MAX_TOTAL_SUPPLY_QUANTA.raw());
+        assert_eq!(total_supply_emitted, 6_599_999_998_000_000);
     }
 }
