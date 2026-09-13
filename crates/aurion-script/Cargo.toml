@@ -1,0 +1,10 @@
+[package]
+name = "aurion-script"
+version.workspace = true
+edition.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+aurion-primitives = { path = "../aurion-primitives" }

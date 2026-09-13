@@ -1,0 +1,11 @@
+[package]
+name = "aurion-core"
+version.workspace = true
+edition.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+aurion-primitives = { path = "../aurion-primitives" }
+serde = { version = "1.0", features = ["derive"] }

@@ -1,0 +1,17 @@
+[package]
+name = "aurion-node"
+version.workspace = true
+edition.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+aurion-primitives = { path = "../../crates/aurion-primitives" }
+aurion-core = { path = "../../crates/aurion-core" }
+aurion-script = { path = "../../crates/aurion-script" }
+aurion-consensus = { path = "../../crates/aurion-consensus" }
+redb = "2.1"
+tokio = { version = "1.38", features = ["full"] }
+tracing = "0.1"
+tracing-subscriber = "0.3"

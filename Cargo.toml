@@ -1,0 +1,27 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/aurion-primitives",
+    "crates/aurion-core",
+    "crates/aurion-script",
+    "crates/aurion-consensus",
+    "apps/aurion-node",
+    "apps/aurion-cli",
+    "services/aurion-indexer",
+]
+default-members = ["apps/aurion-node"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+authors = ["Aurion Sovereign Core Contributors"]
+license = "MIT OR Apache-2.0"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[workspace.lints.clippy]
+float_arithmetic = "deny"
+arithmetic_side_effects = "deny"
+unwrap_used = "warn"
+expect_used = "warn"

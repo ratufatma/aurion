@@ -1,0 +1,12 @@
+[package]
+name = "aurion-indexer"
+version.workspace = true
+edition.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+aurion-primitives = { path = "../../crates/aurion-primitives" }
+rusqlite = { version = "0.31", features = ["bundled"] }
+tokio = { version = "1.38", features = ["full"] }
