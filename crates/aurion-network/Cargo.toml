@@ -1,0 +1,12 @@
+[package]
+name = "aurion-network"
+version.workspace = true
+edition.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+aurion-primitives = { path = "../aurion-primitives" }
+aurion-core = { path = "../aurion-core" }
+thiserror = "1.0"

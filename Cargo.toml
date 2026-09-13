@@ -3,14 +3,17 @@ resolver = "2"
 members = [
     "crates/aurion-primitives",
     "crates/aurion-core",
-    "crates/aurion-script",
     "crates/aurion-consensus",
+    "crates/aurion-script",
     "crates/aurion-eutxo",
-    "apps/aurion-node",
-    "apps/aurion-cli",
-    "services/aurion-indexer",
+    "crates/aurion-storage",
+    "crates/aurion-network",
+    "crates/aurion-node",
+    "crates/aurion-rpc",
+    "crates/aurion-indexer",
+    "bin/aurion",
 ]
-default-members = ["apps/aurion-node"]
+default-members = ["bin/aurion"]
 
 [workspace.package]
 version = "0.1.0"
@@ -26,3 +29,9 @@ float_arithmetic = "deny"
 arithmetic_side_effects = "deny"
 unwrap_used = "warn"
 expect_used = "warn"
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+panic = "abort"

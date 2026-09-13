@@ -1,0 +1,17 @@
+[package]
+name = "aurion-storage"
+version.workspace = true
+edition.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+aurion-primitives = { path = "../aurion-primitives" }
+aurion-core = { path = "../aurion-core" }
+redb = "2.1"
+thiserror = "1.0"
+
+[dev-dependencies]
+aurion-consensus = { path = "../aurion-consensus" }
+tempfile = "3.10"

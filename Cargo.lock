@@ -71,11 +71,23 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d3fb67a6e08acf24fdeccbac2cb6ac4305825bd1f117462e0e6f2f193345ad56"
 
 [[package]]
-name = "aurion-cli"
+name = "aurion"
 version = "0.1.0"
 dependencies = [
+ "aurion-consensus",
+ "aurion-core",
+ "aurion-eutxo",
+ "aurion-indexer",
+ "aurion-network",
+ "aurion-node",
+ "aurion-primitives",
+ "aurion-rpc",
+ "aurion-script",
+ "aurion-storage",
  "clap",
  "tokio",
+ "tracing",
+ "tracing-subscriber",
 ]
 
 [[package]]
@@ -112,9 +124,20 @@ dependencies = [
 name = "aurion-indexer"
 version = "0.1.0"
 dependencies = [
+ "aurion-core",
  "aurion-primitives",
  "rusqlite",
+ "thiserror",
  "tokio",
+]
+
+[[package]]
+name = "aurion-network"
+version = "0.1.0"
+dependencies = [
+ "aurion-core",
+ "aurion-primitives",
+ "thiserror",
 ]
 
 [[package]]
@@ -123,10 +146,12 @@ version = "0.1.0"
 dependencies = [
  "aurion-consensus",
  "aurion-core",
+ "aurion-eutxo",
+ "aurion-network",
  "aurion-primitives",
  "aurion-script",
+ "aurion-storage",
  "ed25519-dalek",
- "redb",
  "tempfile",
  "thiserror",
  "tokio",
@@ -145,11 +170,33 @@ dependencies = [
 ]
 
 [[package]]
+name = "aurion-rpc"
+version = "0.1.0"
+dependencies = [
+ "aurion-core",
+ "aurion-primitives",
+ "serde",
+ "thiserror",
+]
+
+[[package]]
 name = "aurion-script"
 version = "0.1.0"
 dependencies = [
  "aurion-primitives",
  "ed25519-dalek",
+ "thiserror",
+]
+
+[[package]]
+name = "aurion-storage"
+version = "0.1.0"
+dependencies = [
+ "aurion-consensus",
+ "aurion-core",
+ "aurion-primitives",
+ "redb",
+ "tempfile",
  "thiserror",
 ]
 

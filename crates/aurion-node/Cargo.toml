@@ -1,0 +1,24 @@
+[package]
+name = "aurion-node"
+version.workspace = true
+edition.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+aurion-primitives = { path = "../aurion-primitives" }
+aurion-core = { path = "../aurion-core" }
+aurion-script = { path = "../aurion-script" }
+aurion-consensus = { path = "../aurion-consensus" }
+aurion-storage = { path = "../aurion-storage" }
+aurion-network = { path = "../aurion-network" }
+aurion-eutxo = { path = "../aurion-eutxo" }
+tokio = { version = "1.38", features = ["full"] }
+tracing = "0.1"
+tracing-subscriber = "0.3"
+thiserror = "1.0"
+
+[dev-dependencies]
+tempfile = "3.10"
+ed25519-dalek = { version = "2.1", default-features = false }

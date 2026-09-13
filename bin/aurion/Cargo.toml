@@ -1,0 +1,23 @@
+[package]
+name = "aurion"
+version.workspace = true
+edition.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+aurion-primitives = { path = "../../crates/aurion-primitives" }
+aurion-core = { path = "../../crates/aurion-core" }
+aurion-consensus = { path = "../../crates/aurion-consensus" }
+aurion-script = { path = "../../crates/aurion-script" }
+aurion-eutxo = { path = "../../crates/aurion-eutxo" }
+aurion-storage = { path = "../../crates/aurion-storage" }
+aurion-network = { path = "../../crates/aurion-network" }
+aurion-node = { path = "../../crates/aurion-node" }
+aurion-rpc = { path = "../../crates/aurion-rpc" }
+aurion-indexer = { path = "../../crates/aurion-indexer" }
+clap = { version = "4", features = ["derive"] }
+tokio = { version = "1.38", features = ["full"] }
+tracing = "0.1"
+tracing-subscriber = "0.3"
