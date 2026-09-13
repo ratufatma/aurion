@@ -7,6 +7,22 @@ edition.workspace = true
 workspace = true
 
 [dependencies]
+# Aurion Workspace Primitives & Core
 aurion-primitives = { path = "../aurion-primitives" }
-aurion-core = { path = "../aurion-core" }
-thiserror = "1.0"
+aurion-core       = { path = "../aurion-core" }
+
+# Decentralized P2P Transport (Eclipse Zenoh — brokerless peer mesh)
+# Only transport_tcp is enabled by default for maximum portability.
+# transport_quic and shared-memory are opt-in via workspace feature flags.
+zenoh = { version = "1.1", default-features = false, features = ["transport_tcp"] }
+
+# Async runtime & concurrency
+tokio   = { version = "1", features = ["sync", "rt", "macros", "time"] }
+futures = "0.3"
+
+# Logging & error handling
+tracing    = "0.1"
+thiserror  = "1.0"
+
+[dev-dependencies]
+tokio = { version = "1", features = ["full"] }
