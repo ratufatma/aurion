@@ -20,6 +20,7 @@ use aurion_eutxo::state::ExtendedUtxo;
 use aurion_eutxo::view::UtxoView;
 use aurion_node::authority::AuthorityEngine;
 use aurion_node::mempool::Mempool;
+use aurion_network::GossipEngine;
 use aurion_primitives::{Hash256, Quantum};
 use aurion_rpc::server::NodeRpcHandler;
 use aurion_rpc::template::BlockTemplate;
@@ -52,25 +53,32 @@ pub fn calculate_block_subsidy(height: u64) -> Quantum {
     Quantum::from_raw(subsidy_units)
 }
 
-/// Layanan RPC node yang memegang storage `redb`, Mempool, dan mesin authority.
+/// Layanan RPC node yang memegang storage `redb`, Mempool, mesin authority,
+/// dan mesin gossip P2P opsional (None = mode offline/standalone).
 pub struct AurionNodeService {
     storage: Arc<StorageEngine>,
     mempool: Arc<RwLock<Mempool>>,
     authority: Arc<AuthorityEngine>,
+    gossip: Option<Arc<GossipEngine>>,
 }
 
 impl AurionNodeService {
     /// Konstruktor layanan RPC node. `storage` dan `authority` harus berbagi
     /// instance `StorageEngine` yang sama agar tidak terjadi konflik kunci redb.
+    ///
+    /// `gossip` bersifat opsional: `None` menonaktifkan semua siaran P2P keluar
+    /// dan dipakai pada mode offline/standalone serta unit test.
     pub fn new(
         storage: Arc<StorageEngine>,
         authority: Arc<AuthorityEngine>,
         mempool: Arc<RwLock<Mempool>>,
+        gossip: Option<Arc<GossipEngine>>,
     ) -> Self {
         Self {
             storage,
             mempool,
             authority,
+            gossip,
         }
     }
 
@@ -87,35 +95,7 @@ impl AurionNodeService {
     /// Menghitung Median Time Past (MTP) dari jendela `MTP_WINDOW_BLOCKS` blok
     /// terakhir sebelum tip. Fallback ke timestamp genesis bila sampel kosong.
     fn median_time_past(&self, tip_hash: &Hash256) -> Result<u64, String> {
-        let mut samples: Vec<u64> = Vec::with_capacity(MTP_WINDOW_BLOCKS as usize);
-
-        if let Some(tip_block) = self
-            .storage
-            .get_block(tip_hash)
-            .map_err(|e| format!("storage read error: {e}"))?
-        {
-            let mut height = tip_block.header.height;
-            while let Some(block) = self
-                .storage
-                .get_block_by_height(height)
-                .map_err(|e| format!("storage read error: {e}"))?
-            {
-                samples.push(block.header.timestamp);
-                if height == 0 {
-                    break;
-                }
-                height = height.saturating_sub(1);
-                if samples.len() >= MTP_WINDOW_BLOCKS as usize {
-                    break;
-                }
-            }
-        }
-
-        if samples.is_empty() {
-            return Ok(GENESIS_TIMESTAMP);
-        }
-        samples.sort_unstable();
-        Ok(samples[samples.len() / 2])
+        median_time_past(&self.storage, tip_hash)
     }
 
     /// Menghitung target work untuk blok berikutnya dari `bits` blok tip.
@@ -179,6 +159,44 @@ impl AurionNodeService {
             Some(ExtendedUtxo::from_output(&output, 0, false))
         }
     }
+}
+
+/// Menghitung Median Time Past (MTP) dari jendela `MTP_WINDOW_BLOCKS` blok
+/// terakhir sebelum tip. Fallback ke timestamp genesis bila sampel kosong.
+///
+/// Dipakai bersama oleh layanan RPC node dan listener transaksi inbound
+/// (yang tidak memiliki akses ke `AurionNodeService`).
+pub(crate) fn median_time_past(
+    storage: &StorageEngine,
+    tip_hash: &Hash256,
+) -> Result<u64, String> {
+    let mut samples: Vec<u64> = Vec::with_capacity(MTP_WINDOW_BLOCKS as usize);
+
+    if let Some(tip_block) = storage
+        .get_block(tip_hash)
+        .map_err(|e| format!("storage read error: {e}"))?
+    {
+        let mut height = tip_block.header.height;
+        while let Some(block) = storage
+            .get_block_by_height(height)
+            .map_err(|e| format!("storage read error: {e}"))?
+        {
+            samples.push(block.header.timestamp);
+            if height == 0 {
+                break;
+            }
+            height = height.saturating_sub(1);
+            if samples.len() >= MTP_WINDOW_BLOCKS as usize {
+                break;
+            }
+        }
+    }
+
+    if samples.is_empty() {
+        return Ok(GENESIS_TIMESTAMP);
+    }
+    samples.sort_unstable();
+    Ok(samples[samples.len() / 2])
 }
 
 #[async_trait]
@@ -251,6 +269,21 @@ impl NodeRpcHandler for AurionNodeService {
                     txs = block.transactions.len(),
                     "canonical block committed and accepted"
                 );
+
+                if let Some(ref gossip) = self.gossip {
+                    let gossip_clone = Arc::clone(gossip);
+                    let block_clone = block.clone();
+                    tokio::spawn(async move {
+                        if let Err(e) = gossip_clone.broadcast_block(&block_clone).await {
+                            tracing::warn!(
+                                target = "aurion::gossip",
+                                error = %e,
+                                "Failed to broadcast local block to peer mesh"
+                            );
+                        }
+                    });
+                }
+
                 Ok(SubmitResult::Accepted { block_hash, height })
             }
             Err(consensus_err) => {
@@ -277,12 +310,32 @@ impl NodeRpcHandler for AurionNodeService {
             .as_secs();
 
         let view = self.utxo_view();
-        let mut mempool_guard = self.mempool.write().await;
-        let txid = mempool_guard
-            .insert(tx, &view, tip_height, mtp, now)
-            .map_err(|reject| format!("{reject}"))?;
+        let tx_for_broadcast = tx.clone();
+        let txid = {
+            let mut mempool_guard = self.mempool.write().await;
+            let txid = mempool_guard
+                .insert(tx, &view, tip_height, mtp, now)
+                .map_err(|reject| format!("{reject}"))?;
+            drop(mempool_guard);
+            txid
+        };
 
         tracing::info!(target = "aurion::node", %txid, "transaction admitted to Mempool");
+
+        if let Some(ref gossip) = self.gossip {
+            let gossip_clone = Arc::clone(gossip);
+            let tx_clone = tx_for_broadcast;
+            tokio::spawn(async move {
+                if let Err(e) = gossip_clone.broadcast_transaction(&tx_clone).await {
+                    tracing::warn!(
+                        target = "aurion::gossip",
+                        error = %e,
+                        "Failed to broadcast local tx to peer mesh"
+                    );
+                }
+            });
+        }
+
         Ok(txid)
     }
 
@@ -308,7 +361,7 @@ mod tests {
         )));
         let authority = Arc::new(AuthorityEngine::new(Arc::clone(&storage)));
         authority.initialize_genesis().unwrap();
-        let service = Arc::new(AurionNodeService::new(storage, authority, mempool));
+        let service = Arc::new(AurionNodeService::new(storage, authority, mempool, None));
         (file, service)
     }
 

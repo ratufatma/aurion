@@ -15,16 +15,20 @@ use crate::topics::{TOPIC_BLOCKS_NEW, TOPIC_TX_NEW};
 /// Engine for publishing and subscribing to block and transaction gossip
 /// across the Aurion brokerless Zenoh peer mesh.
 ///
-/// Each method wraps payloads in the 52-byte canonical wire frame
-/// (Blake3-checksum-protected) before publishing, and validates the frame
-/// on receipt before decoding.
-pub struct GossipEngine<'s> {
-    session: &'s Session,
+/// Owns a cheaply-cloneable [`zenoh::Session`] so the engine can outlive the
+/// bootstrap handle and be shared across `tokio::spawn` tasks. Each method
+/// wraps payloads in the 52-byte canonical wire frame (Blake3-checksum-protected)
+/// before publishing, and validates the frame on receipt before decoding.
+pub struct GossipEngine {
+    session: Session,
 }
 
-impl<'s> GossipEngine<'s> {
-    /// Create a new `GossipEngine` bound to the given Zenoh session.
-    pub fn new(session: &'s Session) -> Self {
+impl GossipEngine {
+    /// Create a new `GossipEngine` bound to a shared Zenoh session.
+    ///
+    /// `Session` is cheaply cloneable (Arc-backed); clones keep the underlying
+    /// session alive independently of the original bootstrap handle.
+    pub fn new(session: Session) -> Self {
         Self { session }
     }
 

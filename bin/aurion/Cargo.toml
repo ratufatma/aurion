@@ -19,6 +19,7 @@ aurion-rpc = { path = "../../crates/aurion-rpc" }
 aurion-indexer = { path = "../../crates/aurion-indexer" }
 clap = { version = "4", features = ["derive"] }
 async-trait = "0.1"
+futures = "0.3"
 hex = "0.4"
 tokio = { version = "1.38", features = ["full"] }
 tracing = "0.1"

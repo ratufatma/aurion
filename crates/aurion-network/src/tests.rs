@@ -249,7 +249,7 @@ async fn test_brokerless_peer_mesh_local_gossip() {
     // Allow Zenoh P2P direct connection to establish
     tokio::time::sleep(Duration::from_millis(300)).await;
 
-    let gossip_b = GossipEngine::new(session_b.session());
+    let gossip_b = GossipEngine::new(session_b.session().clone());
     let mut tx_stream = gossip_b
         .subscribe_transactions()
         .await
@@ -259,7 +259,7 @@ async fn test_brokerless_peer_mesh_local_gossip() {
     tokio::time::sleep(Duration::from_millis(300)).await;
 
     let expected_tx = sample_transaction();
-    let gossip_a = GossipEngine::new(session_a.session());
+    let gossip_a = GossipEngine::new(session_a.session().clone());
     gossip_a
         .broadcast_transaction(&expected_tx)
         .await
