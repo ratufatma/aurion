@@ -85,6 +85,7 @@ dependencies = [
  "aurion-core",
  "aurion-primitives",
  "aurion-script",
+ "thiserror",
 ]
 
 [[package]]

@@ -10,3 +10,4 @@ workspace = true
 aurion-primitives = { path = "../aurion-primitives" }
 aurion-core = { path = "../aurion-core" }
 aurion-script = { path = "../aurion-script" }
+thiserror = "1.0"
