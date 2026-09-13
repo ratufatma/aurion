@@ -2,6 +2,7 @@ use aurion_core::block::Block;
 use aurion_core::outpoint::OutPoint;
 use aurion_core::tx::TxOutput;
 use aurion_primitives::quantum::Quantum;
+use aurion_script::{ScriptEngine, ScriptError};
 use std::collections::HashSet;
 use thiserror::Error;
 
@@ -12,6 +13,13 @@ pub enum InvariantError {
 
     #[error("input not found in canonical UTXO set: {0}")]
     MissingUtxo(OutPoint),
+
+    #[error("script verification failed for tx {txid} input {input_index}: {error}")]
+    ScriptExecutionFailed {
+        txid: String,
+        input_index: usize,
+        error: ScriptError,
+    },
 
     #[error("value conservation violation in tx {txid}: inputs {inputs} < outputs {outputs}")]
     ValueInflation {
@@ -24,8 +32,11 @@ pub enum InvariantError {
     ArithmeticOverflow,
 }
 
-/// Memverifikasi hukum konservasi nilai dan ketiadaan pembelanjaan ganda (double-spend)
-/// sebelum mutasi diizinkan masuk ke tahap commit redb.
+/// Memverifikasi seluruh invarian blok sebelum commit:
+/// 1. Ketiadaan pembelanjaan ganda (double-spend) di dalam blok.
+/// 2. Keberadaan UTXO pada ledger kanonikal.
+/// 3. Validasi eksekusi skrip deterministik (unlocking -> locking -> truthy).
+/// 4. Hukum konservasi kuanta (sum(inputs) >= sum(outputs)).
 pub fn verify_block_invariants<F>(
     block: &Block,
     utxo_lookup: F,
@@ -42,13 +53,23 @@ where
         }
 
         let mut total_input_val = Quantum::ZERO;
-        for input in &tx.inputs {
+        for (input_idx, input) in tx.inputs.iter().enumerate() {
             let op = input.previous_output;
             if !spent_set.insert(op) {
                 return Err(InvariantError::DuplicateInputSpend(op));
             }
 
             let utxo = utxo_lookup(&op).ok_or(InvariantError::MissingUtxo(op))?;
+
+            // Evaluasi Script eUTXO
+            let sighash = tx.sighash(input_idx);
+            ScriptEngine::verify(&input.unlocking_script, &utxo.locking_script, &sighash)
+                .map_err(|err| InvariantError::ScriptExecutionFailed {
+                    txid: tx.txid().to_string(),
+                    input_index: input_idx,
+                    error: err,
+                })?;
+
             total_input_val = total_input_val
                 .checked_add(utxo.value)
                 .map_err(|_| InvariantError::ArithmeticOverflow)?;
@@ -80,16 +101,113 @@ mod tests {
     use super::*;
     use aurion_core::tx::{Transaction, TxInput};
     use aurion_primitives::hash::Hash256;
+    use aurion_script::OpCode;
     use std::collections::HashMap;
 
     #[test]
-    fn test_value_conservation_rejection() {
-        let prev_op = OutPoint::new(Hash256::digest(b"funding"), 0);
+    fn test_script_verification_success() {
+        let prev_op = OutPoint::new(Hash256::digest(b"funding-valid"), 0);
         let mut utxos = HashMap::new();
-        utxos.insert(prev_op, TxOutput {
-            value: Quantum::from_raw(100),
-            locking_script: vec![],
-        });
+        utxos.insert(
+            prev_op,
+            TxOutput {
+                value: Quantum::from_raw(100),
+                locking_script: vec![OpCode::OpTrue as u8],
+            },
+        );
+
+        let tx = Transaction {
+            version: 1,
+            inputs: vec![TxInput {
+                previous_output: prev_op,
+                unlocking_script: vec![],
+                sequence: 0,
+            }],
+            outputs: vec![TxOutput {
+                value: Quantum::from_raw(80),
+                locking_script: vec![OpCode::OpTrue as u8],
+            }],
+            locktime: 0,
+        };
+
+        let block = Block::new(
+            aurion_core::block::BlockHeader {
+                version: 1,
+                prev_block_hash: Hash256::ZERO,
+                merkle_root: Hash256::ZERO,
+                timestamp: 0,
+                bits: 0,
+                nonce: 0,
+                height: 1,
+            },
+            vec![tx],
+        );
+
+        let result = verify_block_invariants(&block, |op| utxos.get(op).cloned());
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), vec![prev_op]);
+    }
+
+    #[test]
+    fn test_script_verification_failure_rejects_block() {
+        let prev_op = OutPoint::new(Hash256::digest(b"funding-fail"), 0);
+        let mut utxos = HashMap::new();
+        utxos.insert(
+            prev_op,
+            TxOutput {
+                value: Quantum::from_raw(100),
+                locking_script: vec![OpCode::OpFalse as u8],
+            },
+        );
+
+        let tx = Transaction {
+            version: 1,
+            inputs: vec![TxInput {
+                previous_output: prev_op,
+                unlocking_script: vec![],
+                sequence: 0,
+            }],
+            outputs: vec![TxOutput {
+                value: Quantum::from_raw(50),
+                locking_script: vec![OpCode::OpTrue as u8],
+            }],
+            locktime: 0,
+        };
+
+        let block = Block::new(
+            aurion_core::block::BlockHeader {
+                version: 1,
+                prev_block_hash: Hash256::ZERO,
+                merkle_root: Hash256::ZERO,
+                timestamp: 0,
+                bits: 0,
+                nonce: 0,
+                height: 1,
+            },
+            vec![tx],
+        );
+
+        let result = verify_block_invariants(&block, |op| utxos.get(op).cloned());
+        assert!(matches!(
+            result,
+            Err(InvariantError::ScriptExecutionFailed {
+                error: ScriptError::ScriptFailed,
+                ..
+            })
+        ));
+    }
+
+    #[test]
+    fn test_value_conservation_rejection() {
+        let prev_op = OutPoint::new(Hash256::digest(b"funding-inflation"), 0);
+        let mut utxos = HashMap::new();
+        utxos.insert(
+            prev_op,
+            TxOutput {
+                value: Quantum::from_raw(100),
+                locking_script: vec![OpCode::OpTrue as u8],
+            },
+        );
 
         // Transaksi mencoba menghasilkan 150 kuanta dari 100 kuanta input
         let inflating_tx = Transaction {
@@ -101,7 +219,7 @@ mod tests {
             }],
             outputs: vec![TxOutput {
                 value: Quantum::from_raw(150),
-                locking_script: vec![],
+                locking_script: vec![OpCode::OpTrue as u8],
             }],
             locktime: 0,
         };

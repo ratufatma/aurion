@@ -100,6 +100,13 @@ impl Transaction {
     pub fn is_coinbase(&self) -> bool {
         self.inputs.len() == 1 && self.inputs[0].previous_output.txid == Hash256::ZERO
     }
+
+    /// Menghitung sighash unik untuk input tertentu dengan mengikat data transaksi dan indeks input.
+    pub fn sighash(&self, input_index: usize) -> Hash256 {
+        let mut preimage = self.encode_canonical();
+        preimage.extend_from_slice(&(input_index as u32).to_be_bytes());
+        Hash256::digest(&preimage)
+    }
 }
 
 impl CanonicalCodec for Transaction {
@@ -199,5 +206,7 @@ mod tests {
         let decoded = Transaction::decode_canonical(&bytes).unwrap();
         assert_eq!(tx, decoded);
         assert_eq!(tx.txid(), decoded.txid());
+        assert_ne!(tx.sighash(0), Hash256::ZERO);
+        assert_ne!(tx.sighash(0), tx.sighash(1));
     }
 }
