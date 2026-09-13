@@ -12,3 +12,8 @@
 *.swo
 .DS_Store
 Thumbs.db
+
+# Agent and AI assistant configurations
+GEMINI.md
+.agents/
+
