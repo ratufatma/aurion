@@ -102,8 +102,13 @@ impl Transaction {
     }
 
     /// Menghitung sighash unik untuk input tertentu dengan mengikat data transaksi dan indeks input.
+    /// Unlocking script dikosongkan agar signature menandatangani kerangka transaksi (tanpa circular dependency).
     pub fn sighash(&self, input_index: usize) -> Hash256 {
-        let mut preimage = self.encode_canonical();
+        let mut tx_copy = self.clone();
+        for input in &mut tx_copy.inputs {
+            input.unlocking_script.clear();
+        }
+        let mut preimage = tx_copy.encode_canonical();
         preimage.extend_from_slice(&(input_index as u32).to_be_bytes());
         Hash256::digest(&preimage)
     }

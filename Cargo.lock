@@ -114,6 +114,7 @@ dependencies = [
  "aurion-core",
  "aurion-primitives",
  "aurion-script",
+ "ed25519-dalek",
  "redb",
  "tempfile",
  "thiserror",

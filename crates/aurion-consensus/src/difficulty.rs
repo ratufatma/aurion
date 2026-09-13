@@ -17,7 +17,7 @@ pub fn compact_to_target(bits: u32) -> Result<[u8; 32], ConsensusError> {
     }
 
     let m_bytes = mantissa.to_be_bytes();
-    let shift_index = match exponent.checked_sub(3) {
+    let shift_index = match 32usize.checked_sub(exponent) {
         Some(idx) => idx,
         None => return Err(ConsensusError::InvalidCompactBits(bits)),
     };
