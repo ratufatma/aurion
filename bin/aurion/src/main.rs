@@ -2,6 +2,7 @@
 #![deny(clippy::float_arithmetic)]
 
 mod commands;
+mod rpc_handler;
 
 use clap::{Parser, Subcommand};
 use commands::{indexer::IndexerArgs, mine::MineArgs, node::NodeArgs, wallet::WalletArgs};
@@ -35,7 +36,12 @@ async fn main() {
     let cli = Cli::parse();
 
     match cli.command {
-        Commands::Node(args) => commands::node::run(args).await,
+        Commands::Node(args) => {
+            if let Err(err) = commands::node::run(args).await {
+                tracing::error!("Node terminated with error: {err}");
+                std::process::exit(1);
+            }
+        }
         Commands::Wallet(args) => commands::wallet::run(args).await,
         Commands::Mine(args) => {
             if let Err(err) = commands::mine::run(args).await {

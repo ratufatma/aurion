@@ -18,6 +18,7 @@ aurion-node = { path = "../../crates/aurion-node" }
 aurion-rpc = { path = "../../crates/aurion-rpc" }
 aurion-indexer = { path = "../../crates/aurion-indexer" }
 clap = { version = "4", features = ["derive"] }
+async-trait = "0.1"
 tokio = { version = "1.38", features = ["full"] }
 tracing = "0.1"
 tracing-subscriber = "0.3"
@@ -25,4 +26,7 @@ rayon = "1.10"
 wgpu = { version = "24", features = ["wgsl"] }
 pollster = "0.4"
 thiserror = "1.0"
+
+[dev-dependencies]
+tempfile = "3"
 

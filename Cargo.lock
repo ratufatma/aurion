@@ -157,6 +157,7 @@ dependencies = [
 name = "aurion"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "aurion-consensus",
  "aurion-core",
  "aurion-eutxo",
@@ -170,6 +171,7 @@ dependencies = [
  "clap",
  "pollster",
  "rayon",
+ "tempfile",
  "thiserror 1.0.69",
  "tokio",
  "tracing",
