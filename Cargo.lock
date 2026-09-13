@@ -263,10 +263,12 @@ dependencies = [
 name = "aurion-rpc"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "aurion-core",
  "aurion-primitives",
- "serde",
  "thiserror 1.0.69",
+ "tokio",
+ "tracing",
 ]
 
 [[package]]
