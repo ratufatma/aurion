@@ -7,6 +7,7 @@ use crate::stack::Stack;
 
 pub const MAX_OPS_PER_SCRIPT: usize = 201;
 
+#[derive(Default)]
 pub struct ScriptEngine {
     stack: Stack,
 }

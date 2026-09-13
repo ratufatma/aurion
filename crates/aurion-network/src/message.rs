@@ -51,7 +51,7 @@ impl NetworkMessage {
             Self::Block(block) => block.encode_canonical(),
             Self::Tx(tx) => tx.encode_canonical(),
             Self::Inv(hashes) | Self::GetData(hashes) => {
-                let mut buf = Vec::with_capacity(4 + hashes.len() * 32);
+                let mut buf = Vec::with_capacity(hashes.len().saturating_mul(32).saturating_add(4));
                 buf.extend_from_slice(&(hashes.len() as u32).to_be_bytes());
                 for h in hashes {
                     buf.extend_from_slice(h.as_bytes());

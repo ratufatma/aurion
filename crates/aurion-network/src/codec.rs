@@ -22,7 +22,7 @@ impl NetworkCodec {
         let payload_len = payload.len() as u32;
         let checksum = Hash256::digest(&payload);
 
-        let mut frame = Vec::with_capacity(52 + payload.len());
+        let mut frame = Vec::with_capacity(payload.len().saturating_add(52));
         frame.extend_from_slice(&NETWORK_MAGIC);
 
         let mut cmd_bytes = [0u8; 12];

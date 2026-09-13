@@ -5,7 +5,7 @@ use crate::outpoint::OutPoint;
 
 fn encode_vec_bytes(bytes: &[u8]) -> Vec<u8> {
     let len = bytes.len() as u32;
-    let mut buf = Vec::with_capacity(4 + bytes.len());
+    let mut buf = Vec::with_capacity(bytes.len().saturating_add(4));
     buf.extend_from_slice(&len.to_be_bytes());
     buf.extend_from_slice(bytes);
     buf

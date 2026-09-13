@@ -55,7 +55,9 @@ impl Stack {
         if len < 2 {
             return Err(ScriptError::StackUnderflow);
         }
-        self.items.swap(len - 1, len - 2);
+        let idx1 = len.saturating_sub(1);
+        let idx2 = len.saturating_sub(2);
+        self.items.swap(idx1, idx2);
         Ok(())
     }
 

@@ -7,7 +7,7 @@ pub fn compute_merkle_root(hashes: &[Hash256]) -> Hash256 {
 
     let mut current_layer = hashes.to_vec();
     while current_layer.len() > 1 {
-        let mut next_layer = Vec::with_capacity((current_layer.len() + 1) / 2);
+        let mut next_layer = Vec::with_capacity(current_layer.len().div_ceil(2));
         for chunk in current_layer.chunks(2) {
             let left = chunk[0];
             let right = if chunk.len() == 2 { chunk[1] } else { chunk[0] };
