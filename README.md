@@ -85,14 +85,17 @@ expect_used = "warn"
 
 ---
 
-## Formal Specifications
+## Formal Specifications & Architecture
 
-Protocol specifications are formally documented in [`docs/`](docs/):
+Protocol specifications and conceptual architecture are formally documented in [`docs/`](docs/):
 
+- [**System Architecture & Conceptual Blueprint**](docs/ARCHITECTURE.md) — Protocol topology, 4-layer hierarchy, and end-to-end transaction lifecycle.
 - [**SPEC-01: Sovereign Single Authority Specification**](docs/SPEC-01-SOVEREIGNTY.md) — Architectural hierarchy, single authority principle, and data access boundaries.
-- [**SPEC-02: Ledger Invariants & Mathematical Tripwires**](docs/SPEC-02-INVARIANTS.md) — Value conservation, coinbase maturity, locktime semantics, and script invariants.
+- [**SPEC-02: Ledger Invariants & Mathematical Tripwires**](docs/SPEC-02-INVARIANTS.md) — Value conservation, 66M Hard Cap, coinbase maturity, locktime semantics, and script invariants.
 - [**SPEC-03: Storage & Persistence Protocol**](docs/SPEC-03-STORAGE-PROTOCOL.md) — Atomicity invariants, `redb` schema, and fail-stop persistence semantics.
 - [**SPEC-04: Fault Taxonomy & Fail-Stop Semantics**](docs/SPEC-04-FAULT-TAXONOMY.md) — Operational vs. Integrity faults and fail-stop state machine lifecycle.
+- [**SPEC-05: Proof-of-Work & Dual-Engine Mining**](docs/SPEC-05-CONSENSUS-AND-MINING.md) — Blake3 PoW math, compact bits target calculation, safe `wgpu` GPU / Rayon CPU fallback.
+- [**SPEC-06: P2P Wire Protocol & Network Boundary**](docs/SPEC-06-P2P-NETWORK-PROTOCOL.md) — Binary 52-byte header framing, Blake3 payload checksum, 4 MB anti-DoS ceiling.
 
 ---
 
@@ -128,9 +131,16 @@ Options:
   cargo run -p aurion -- wallet new
   cargo run -p aurion -- wallet balance --address <HEX_ADDRESS>
   ```
-- **Run PoW Miner:**
+- **Run PoW Dual-Engine Miner:**
   ```bash
-  cargo run -p aurion -- mine --threads 4 --reward-address <HEX_ADDRESS>
+  # Auto-detect GPU with graceful CPU fallback
+  cargo run -p aurion -- mine --backend auto --threads 4
+
+  # Force multi-threaded CPU mining
+  cargo run -p aurion -- mine --backend cpu --threads 8
+
+  # Force GPU acceleration on device index 0
+  cargo run -p aurion -- mine --backend gpu --device 0
   ```
 - **Start Projection Indexer:**
   ```bash
