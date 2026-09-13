@@ -376,4 +376,48 @@ mod tests {
         let err = service.handle_send_raw_tx(tx).await.unwrap_err();
         assert!(err.contains("not found"), "unexpected error: {err}");
     }
+
+    #[tokio::test]
+    async fn test_mined_height1_block_accepted_via_miner_loop() {
+        use crate::commands::mine::coinbase::build_coinbase_transaction;
+        use crate::commands::mine::engine::{mine_candidate, target_to_bits};
+        use aurion_core::{compute_merkle_root, Block, BlockHeader};
+
+        let (_file, service) = build_service();
+
+        let template = service.handle_get_block_template(b"payout").await.unwrap();
+        assert_eq!(template.height, 1);
+
+        let coinbase = build_coinbase_transaction(
+            template.height,
+            vec![0x51],
+            template.coinbase_subsidy,
+            Quantum::ZERO,
+            1,
+        )
+        .unwrap();
+
+        let txs = vec![coinbase];
+        let txids: Vec<Hash256> = txs.iter().map(|tx| tx.txid()).collect();
+        let merkle_root = compute_merkle_root(&txids);
+
+        let candidate = BlockHeader {
+            version: 1,
+            prev_block_hash: template.previous_block_hash,
+            merkle_root,
+            timestamp: template.timestamp,
+            bits: target_to_bits(template.target.as_bytes()),
+            nonce: 0,
+            height: template.height,
+        };
+
+        let solved = mine_candidate(candidate, template.target, true).await.unwrap();
+        let block = Block::new(solved, txs);
+
+        let result = service.handle_submit_block(block).await.unwrap();
+        assert!(matches!(
+            result,
+            SubmitResult::Accepted { height: 1, .. }
+        ));
+    }
 }

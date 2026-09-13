@@ -169,6 +169,7 @@ dependencies = [
  "aurion-script",
  "aurion-storage",
  "clap",
+ "hex",
  "pollster",
  "rayon",
  "tempfile",
